@@ -44,7 +44,7 @@ pub trait Keyboard {
 
 
 pub mod map {
-    use super::keyboard::{KeyCode, KeyId};
+    use super::{KeyCode, KeyId};
 
     pub type LayerId = u8;
 
