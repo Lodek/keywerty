@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "kb-rs"
+name = "keyboard_interface"
 version = "0.1.0"
