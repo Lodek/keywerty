@@ -132,14 +132,14 @@ where LayerMapperImpl: LayerMapper
         }
     }
 
-    // TODO I could inline this whole function
+    // TODO inline this whole function
     fn actionset_apply<F>(&mut self, key: KeyId, actionset: KeyActionSet, queue: &mut Vec<Action>, mut supplier: F) 
     where F: FnMut(&mut Self, KeyId, KeyAction) -> Option<Action> 
     {
         // TODO should convert this to a macro or an inline function so there's no overhead
         let mut append_if_some = |opt: Option<Action>| if opt.is_some() {queue.push(opt.unwrap())};
 
-        // FIXME this seems pretty stoopid. wonder if there's a better way
+        // FIXME generate macro to clean repetition?
         match actionset {
             KeyActionSet::Single(ka1) => {
                 let opt = supplier(self, key, ka1);
@@ -198,13 +198,6 @@ where LayerMapperImpl: LayerMapper
 // Then once the action is performed, in theory, the action will never be undone because
 // next time the key is pressed a new state machine will be created
 // i guess that's one scenarion in which the state machine can lead to a weird state
-//
-// TODO shit, now i want to implement a dead key.
-// but first i need to figure out that issue with the state machines.
-// ugh
-// it seems so dumb
-// how the fuck do i define an interface then i can't use it???
-//
 //
 // TODO another detail i need to take care of is how the state machine will interact when two stateful
 // keys are pressed.
