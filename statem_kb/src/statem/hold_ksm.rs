@@ -77,6 +77,7 @@ impl KSMInit for HoldKSM {
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -152,3 +153,4 @@ mod tests {
         assert_eq!(actionset_opt.unwrap(), KeyActionSet::Single(KeyAction::AddKey(tap_key_code)));
     }
 }
+*/

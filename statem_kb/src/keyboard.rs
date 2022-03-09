@@ -222,13 +222,27 @@ mod tests {
     use super::*;
     use keyboard_interface::map::SimpleMapper;
 
-    #[test]
-    fn test_sanity_with_simple_mapper() {
-        let simple_mapper = SimpleMapper::new(10);
 
+    #[test]
+    fn test_sanity_press_then_release_with_simple_mapper() {
+        let num_keys = 10;
+        let simple_mapper = SimpleMapper::new(num_keys);
+        let settings = SMKeyboardSettings::default();
+        let mut keyboard = SMKeyboard::new(num_keys, 0, simple_mapper, settings);
+
+        let press_actions = keyboard.transition(Event::KeyPress(1));
+        let release_actions = keyboard.transition(Event::KeyRelease(1));
+
+        assert_eq!(press_actions[0], Action::SendCode(1));
+        assert_eq!(release_actions[0], Action::Stop(1));
     }
 
+    #[test]
+    fn test_() {
 
+    }
+    // test layer setting 
+    // test state machine
 }
 
 // Does the state machine paradigm works for key releases? I guess it's possible to implement a
