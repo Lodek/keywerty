@@ -72,3 +72,26 @@ pub enum KeyConf {
 pub trait LayerMapper {
     fn get_conf(&self, layer: LayerId, key: KeyId) -> KeyConf;
 }
+
+
+/// Simple Mapper implementation to aid testing.
+/// Mapper returns `num_keys * layer` + `key`, which yields
+/// a deterministic and unique keycode for combination.
+/// (So long as the result is not grater than 2^8)
+pub struct SimpleMapper {
+    num_keys: u8
+}
+
+impl SimpleMapper {
+    pub fn new(num_keys: u8) -> Self {
+        SimpleMapper {num_keys}
+    }
+}
+
+impl LayerMapper for SimpleMapper {
+    fn get_conf(&self, layer: LayerId, key: KeyId) -> KeyConf {
+        let key_code = layer * self.num_keys + key;
+        let key_action = KeyAction::AddKey(key_code);
+        KeyConf::Tap(TapKeyConf(KeyActionSet::Single(key_action)))
+    }
+}
