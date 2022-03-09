@@ -5,27 +5,55 @@ use keyboard_interface::{Keyboard, Action, Event, KeyId};
 use keyboard_interface::map::{LayerMapper, KeyConf, KeyAction, KeyActionSet, TapKeyConf, HoldKeyConf, DoubleTapKeyConf, DoubleTapHoldKeyConf, LayerId};
 use crate::statem::{KeyStateMachine, KSMInit, HoldKSM, DoubleTapKSM, DoubleTapHoldKSM};
 
+#[derive(Debug, Clone, Copy)]
+pub struct SMKeyboardSettings {
+    pub hold_kms_delay: Duration,
+
+    pub dtkms_retap_delay: Duration,
+    pub dtkms_hold_delay: Duration,
+
+    pub dthkms_retap_delay: Duration,
+    pub dthkms_hold_delay: Duration,
+}
+
+impl Default for SMKeyboardSettings {
+    fn default() -> Self {
+        SMKeyboardSettings {
+            hold_kms_delay: Duration::from_millis(100),
+
+            dtkms_retap_delay: Duration::from_millis(100),
+            dtkms_hold_delay: Duration::from_millis(100),
+
+            dthkms_retap_delay: Duration::from_millis(100),
+            dthkms_hold_delay: Duration::from_millis(100),
+        }
+    }
+}
+
+
 pub struct SMKeyboard<LayerMapperImpl> {
     num_keys: u8,
     default_layer: LayerId,
     layer_mapper: LayerMapperImpl,
     stateful_handling: Option<Box<dyn KeyStateMachine>>,
     layer_stack: Vec<LayerId>,
-    key_actions_map: BTreeMap<KeyId, KeyActionSet>
+    key_actions_map: BTreeMap<KeyId, KeyActionSet>,
+    settings: SMKeyboardSettings,
 }
 
 
 impl<LayerMapperImpl> SMKeyboard<LayerMapperImpl> 
 where LayerMapperImpl: LayerMapper
 {
-    pub fn new(num_keys: u8, default_layer: LayerId, layer_mapper: LayerMapperImpl) -> Self {
+    pub fn new(num_keys: u8, default_layer: LayerId, layer_mapper: LayerMapperImpl, settings: SMKeyboardSettings) -> Self {
         Self {
             num_keys,
-            default_layer,
+            settings,
             layer_mapper,
+            default_layer,
             stateful_handling: None,
-            layer_stack: Vec::with_capacity(num_keys.into()),
             key_actions_map: BTreeMap::new(),
+            layer_stack: Vec::with_capacity(num_keys.into()),
         }
     }
 
@@ -74,20 +102,17 @@ where LayerMapperImpl: LayerMapper
             },
             // FIXME so much repetition dude
             KeyConf::Hold(key_conf) => {
-                // TODO where should the duration for the machines come from?
-                let mut ksm = HoldKSM::new(Duration::from_millis(100));
+                let mut ksm = HoldKSM::new(self.settings.hold_kms_delay);
                 ksm.init_machine(key, key_conf);
                 self.stateful_handling = Some(Box::new(ksm));
             },
             KeyConf::DoubleTap(key_conf) => {
-                // TODO where should the duration for the machines come from?
-                let mut ksm = DoubleTapKSM::new(Duration::from_millis(100), Duration::from_millis(100));
+                let mut ksm = DoubleTapKSM::new(self.settings.dtkms_retap_delay, self.settings.dtkms_hold_delay);
                 ksm.init_machine(key, key_conf);
                 self.stateful_handling = Some(Box::new(ksm));
             },
             KeyConf::DoubleTapHold(key_conf) => {
-                // TODO where should the duration for the machines come from?
-                let mut ksm = DoubleTapHoldKSM::new(Duration::from_millis(100), Duration::from_millis(100));
+                let mut ksm = DoubleTapHoldKSM::new(self.settings.dthkms_retap_delay, self.settings.dthkms_hold_delay);
                 ksm.init_machine(key, key_conf);
                 self.stateful_handling = Some(Box::new(ksm));
             }
@@ -189,6 +214,21 @@ where LayerMapperImpl: LayerMapper
         }
         return actions;
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use keyboard_interface::map::SimpleMapper;
+
+    #[test]
+    fn test_sanity_with_simple_mapper() {
+        let simple_mapper = SimpleMapper::new(10);
+
+    }
+
+
 }
 
 // Does the state machine paradigm works for key releases? I guess it's possible to implement a
