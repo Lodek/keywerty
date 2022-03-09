@@ -56,6 +56,9 @@ pub struct DoubleTapKeyConf(pub KeyActionSet, pub KeyActionSet);
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DoubleTapHoldKeyConf(pub KeyActionSet, pub KeyActionSet, pub KeyActionSet);
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct DeadKeyConf(pub KeyActionSet, pub KeyActionSet);
+
 
 // TODO I need to figure out if this is efficient, but this seems alright as far as structure goes.
 #[derive(Debug)]
