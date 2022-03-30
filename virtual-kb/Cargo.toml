@@ -6,3 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+evdev-rs = "0.5.0"
+keyboard_interface = { path = "../keyboard_interface", version = "0.1.0" }
