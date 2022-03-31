@@ -61,7 +61,7 @@ impl EvdevListener {
 /// Safe interface around Linux's epoll.
 /// Allows creating an epoll kernel instance
 /// and monitoring a file for read events.
-struct Epoll  { 
+struct Epoll  {
     epoll_fd: RawFd,
     event_buff: Vec<epoll_event>,
 }
@@ -131,7 +131,6 @@ impl Epoll {
             }
         }
     }
-
 }
 
 impl Drop for Epoll {
