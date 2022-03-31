@@ -1,33 +1,44 @@
-struct EventReport {}
+mod virtual_dev;
 
-/// Listen to an event device and generates reports
-/// Responsible for correctly handling syn drop semantics.
-/// Listener must be non block
-trait EvdevListener {
-    fn new(device: Path) -> Self;
-    fn generate_report() -> Option<EventReport>
+/*
+use evdev_rs::enums::EV_KEY;
+
+pub enum Error {
+    CErr(c_int)
 }
 
+type Result<T> = std::result::Result<T, Error>;
 
-/// Represents a virtual uinput device.
-/// Initializes device and emits events
-trait VirtualDevice {
-    fn new() -> Result<Self>;
-    fn publish_events(report: EventReport) -> Result<()>;
+
+// not sure about the vector but i'll roll with it
+pub enum RuntimeEvent<'a> {
+    Report(&'a mut EventReport),
+    Poll
 }
 
-/// Wraps around multi action keyboard trait 
-/// Receives a complete event report without sync events
-/// return full report containing sync events
-trait EvdevKeyboard: MultiActionKeyboard {
-    fn evdev_transition(&EventReport) -> EventReport;
+struct Runtime {
+    // create channel
+    // create instance of evdev listener, send tx
+    // create instance of timer, send tx
+    // store thread handles
+    // loop
+    // block on channel read until timeout or report is available
+    // call evdev keyboard and generate event report
+    // send report to virtual device
 }
 
-// The runtime has to be an event loop
-// there will be two types of events, one for fd updates
-// and one for timers
-// compare select and epoll for event loop
-// implement multiple runtimes, based on async with tokio and manual event loop
+impl Runtime {
+    fn new() -> Self;
+    fn run<Kb>(kb: Kb) 
+        where Kb: EvdevKeyboard;
+}
 
-// Can I make these data types trait-based, such that it might be extended for other operating
-// systems?
+struct Timer {
+    fn new(period: Duration);
+    // loop, sleep, write to tx
+    // no need for hardware timer
+    // would be cool to use a signal system here
+    // but maybe for the future
+    fn run(tx: Sender<>);
+}
+*/
