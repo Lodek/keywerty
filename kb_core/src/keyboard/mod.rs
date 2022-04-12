@@ -1,11 +1,14 @@
-/// Keyboard module with main abstractions that rule a keyboard
-pub mod map;
+/// Module defines a Logical keyboard and its dependent types.
+///
+/// The logical keyboard interface was drawn out considering 
+/// types which match an USB HID keyboard, that is, key scan codes are 1 byte.
 
 /// HID Scan codes
+// probably use linux events instead
 // TODO convert this to an enum cause pretty
 pub type KeyCode = u8;
 
-pub type KeyId = u8;
+pub type KeyId = u16;
 
 /// Set of events that a keyboard respond to. (inputs)
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -33,7 +36,7 @@ impl Event {
 }
 
 /// Set of actions a keyboard perform as consequence of inputs. (outputs)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Action {
     SendCode(KeyCode),
     Stop(KeyCode)
@@ -51,3 +54,15 @@ pub enum Action {
 pub trait Keyboard {
     fn transition<'a>(&mut self, event: Event) -> Vec<Action>;
 }
+
+/// Wraps a keyboard into a keyboard that can receive multiple
+/// events at once.
+/// Internally each event is processed in the order it was sent.
+pub trait MultiEventKeyboard: Keyboard {
+    
+    /// Sequentially Steps through all events informed and return
+    /// agreggated list of actions.
+    fn transition_events<'a>(&mut self, events: &[Event]) -> Vec<Action>;
+}
+
+// TODO Add blanket implementation for MultiEventKeyboard
