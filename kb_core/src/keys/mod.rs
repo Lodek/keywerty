@@ -39,6 +39,7 @@ pub struct DeadKeyConf<T> {
     pub retap: T,
 }
 
+
 /// Activating a key triggers an action to occur.
 /// An action can alter the internal state of the keyboard, or 
 /// it may produce an output.
@@ -62,17 +63,12 @@ pub enum KeyAction {
     // RemoveKey, // removes key from set of active keys
 }
 
-enum KeyAction<M, A> {
-    Mutation(M),
-    Action(A),
-    NoOp
+impl Default for KeyAction {
+    fn default() -> Self {
+        KeyAction::NoOp
+    }
 }
 
-    impl Default for KeyAction {
-        fn default() -> Self {
-            KeyAction::NoOp
-        }
-    }
 
 /// A group of KeyActions that will be triggered once a key is activated
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -92,4 +88,3 @@ impl Default for KeyActionSet {
 pub trait KeyActionSet {
     fn get_actions(&self) -> &[KeyAction];
 }
-
