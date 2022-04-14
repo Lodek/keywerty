@@ -1,9 +1,9 @@
 use std::time::{Instant, Duration};
 
-use keyboard_interface::{KeyId, Event};
-use keyboard_interface::map::{KeyActionSet, DoubleTapKeyConf};
+use super::super::{Event};
+use crate::keys::{KeyId, KeyActionSet, DoubleTapKeyConf};
 
-use crate::statem::{KeyStateMachine, KSMInit};
+use super::{KeyStateMachine, KSMInit};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum State {
@@ -81,8 +81,8 @@ impl KeyStateMachine for DoubleTapKSM {
         match self.state {
             State::FirstTap => None,
             State::FirstRelease => None,
-            State::Timeout => Some(self.key_conf.0),
-            State::Retap => Some(self.key_conf.1),
+            State::Timeout => Some(self.key_conf.tap),
+            State::Retap => Some(self.key_conf.double_tap),
         }
     }
 }

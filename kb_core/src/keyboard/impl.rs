@@ -1,9 +1,12 @@
+
 use std::time::{Duration};
 use std::collections::BTreeMap;
 
-use keyboard_interface::{Keyboard, Action, Event, KeyId};
-use keyboard_interface::map::{LayerMapper, KeyConf, KeyAction, KeyActionSet, TapKeyConf, HoldKeyConf, DoubleTapKeyConf, DoubleTapHoldKeyConf, LayerId};
-use crate::statem::{KeyStateMachine, KSMInit, HoldKSM, DoubleTapKSM, DoubleTapHoldKSM};
+use super::{Keyboard, Action, Event};
+use crate::keys::{KeyId, LayerId, KeyCode};
+use crate::mapper::{LayerMapper};
+use crate::keys::{KeyConf, KeyAction, KeyActionSet, TapKeyConf, HoldKeyConf, DoubleTapKeyConf, DoubleTapHoldKeyConf};
+use super::state_machines::{KeyStateMachine, KSMInit, HoldKSM, DoubleTapKSM, DoubleTapHoldKSM};
 
 #[derive(Debug, Clone, Copy)]
 pub struct SMKeyboardSettings {
@@ -96,7 +99,7 @@ where LayerMapperImpl: LayerMapper
     fn handle_key_press(&mut self, key: KeyId, action_queue: &mut Vec<Action>) {
         match self.layer_mapper.get_conf(self.get_layer(), key) {
             KeyConf::Tap(tap_conf) => {
-                let actionset = tap_conf.0;
+                let actionset = tap_conf.tap;
                 self.apply_actionset(key, actionset, action_queue);
                 self.key_actions_map.insert(key, actionset);
             },

@@ -5,6 +5,8 @@
 
 use crate::keys::{KeyCode, KeyId};
 
+mod r#impl;
+mod state_machines;
 
 /// Set of events that a keyboard respond to. (inputs)
 #[derive(PartialEq, Debug, Clone, Copy)]

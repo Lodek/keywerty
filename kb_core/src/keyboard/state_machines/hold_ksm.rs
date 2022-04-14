@@ -1,9 +1,9 @@
 /// Module for Key State Machine implementation for the `Hold` key configuration
 use std::time::{Instant, Duration};
 
-use keyboard_interface::{KeyId, Event};
-use keyboard_interface::map::{KeyActionSet, HoldKeyConf};
-use crate::statem::{KeyStateMachine, KSMInit};
+use super::super::{Event};
+use crate::keys::{KeyActionSet, HoldKeyConf, KeyId};
+use super::{KeyStateMachine, KSMInit};
 
 
 #[derive(Clone, Copy, Debug)]
@@ -60,8 +60,8 @@ impl KeyStateMachine for HoldKSM {
 
         match self.state {
             State::Waiting => None,
-            State::Tap => Some(self.key_conf.0),
-            State::Hold => Some(self.key_conf.1)
+            State::Tap => Some(self.key_conf.tap),
+            State::Hold => Some(self.key_conf.hold)
         }
     }
 }

@@ -12,8 +12,8 @@ mod hold_ksm;
 mod double_tap_ksm;
 mod double_tap_hold_ksm;
 
-use keyboard_interface::{Event, KeyId, Action};
-use keyboard_interface::map::{KeyConf, KeyActionSet};
+use crate::keyboard::{Event, Action};
+use crate::keys::{KeyId, KeyConf, KeyActionSet};
 
 pub use hold_ksm::{HoldKSM};
 pub use double_tap_ksm::{DoubleTapKSM};
