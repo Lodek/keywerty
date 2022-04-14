@@ -3,12 +3,8 @@
 /// The logical keyboard interface was drawn out considering 
 /// types which match an USB HID keyboard, that is, key scan codes are 1 byte.
 
-/// HID Scan codes
-// probably use linux events instead
-// TODO convert this to an enum cause pretty
-pub type KeyCode = u8;
+use crate::keys::{KeyCode, KeyId};
 
-pub type KeyId = u16;
 
 /// Set of events that a keyboard respond to. (inputs)
 #[derive(PartialEq, Debug, Clone, Copy)]

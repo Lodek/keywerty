@@ -1,44 +1,11 @@
 /// Module defines types for keys with stateful activation modes
 
-
-#[derive(Debug)]
-pub enum KeyConf {
-    Tap(TapKeyConf),
-    Hold(HoldKeyConf),
-    DoubleTap(DoubleTapKeyConf),
-    DoubleTapHold(DoubleTapHoldKeyConf),
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct TapKeyConf<T> {
-    pub tap: <T>,
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct HoldKeyConf<T> {
-    pub tap: T,
-    pub hold: T,
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct DoubleTapKeyConf<T> {
-    pub tap: T,
-    pub double_tap: T,
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct DoubleTapHoldKeyConf<T> {
-    pub tap: T,
-    pub double_tap: T,
-    pub hold: T,
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct DeadKeyConf<T> {
-    pub activation: T,
-    pub retap: T,
-}
-
+/// HID Scan codes
+// probably use linux events instead
+// TODO convert this to an enum cause pretty
+pub type KeyCode = u8;
+pub type KeyId = u8;
+pub type LayerId = u8;
 
 /// Activating a key triggers an action to occur.
 /// An action can alter the internal state of the keyboard, or 
@@ -79,12 +46,75 @@ pub enum KeyActionSet {
     Triple(KeyAction, KeyAction, KeyAction),
 }
 
+impl KeyActionSet {
+    fn get_actions(&self) -> Vec<KeyAction> {
+        let mut actions = Vec::new();
+
+        match self {
+            KeyActionSet::Single(a1) => {
+                actions.push(*a1);
+            },
+            KeyActionSet::Double(a1, a2) => {
+                actions.push(*a1);
+                actions.push(*a2);
+            },
+            KeyActionSet::Triple(a1, a2, a3) => {
+                actions.push(*a1);
+                actions.push(*a2);
+                actions.push(*a3);
+            },
+        }
+        actions
+    }
+}
+
 impl Default for KeyActionSet {
     fn default() -> Self {
         Self::Single(KeyAction::default())
     }
 }
 
-pub trait KeyActionSet {
-    fn get_actions(&self) -> &[KeyAction];
+
+#[derive(Debug, Clone, Copy)]
+pub enum KeyConf {
+    Tap(TapKeyConf),
+    Hold(HoldKeyConf),
+    DoubleTap(DoubleTapKeyConf),
+    DoubleTapHold(DoubleTapHoldKeyConf),
+}
+
+impl Default for KeyConf {
+    fn default() -> Self {
+        todo!()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct TapKeyConf {
+    pub tap: KeyActionSet,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct HoldKeyConf {
+    pub tap: KeyActionSet,
+    pub hold: KeyActionSet,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct DoubleTapKeyConf {
+    pub tap: KeyActionSet,
+    pub double_tap: KeyActionSet,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct DoubleTapHoldKeyConf {
+    pub tap: KeyActionSet,
+    pub double_tap: KeyActionSet,
+    pub hold: KeyActionSet,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct DeadKeyConf {
+    pub activation: KeyActionSet,
+    pub retap: KeyActionSet,
 }
