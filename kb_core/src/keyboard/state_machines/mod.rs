@@ -13,7 +13,8 @@ mod double_tap_ksm;
 mod double_tap_hold_ksm;
 
 use crate::keyboard::{Event, Action};
-use crate::keys::{KeyId, KeyConf, KeyActionSet};
+use crate::keyboard::KeyId;
+use crate::keys::{KeyConf, KeyActionSet};
 
 pub use hold_ksm::{HoldKSM};
 pub use double_tap_ksm::{DoubleTapKSM};

@@ -3,7 +3,8 @@ use std::time::{Duration};
 use std::collections::BTreeMap;
 
 use super::{Keyboard, Action, Event};
-use crate::keys::{KeyId, LayerId, KeyCode};
+use super::KeyId;
+use crate::keys::{LayerId, KeyCode};
 use crate::mapper::{LayerMapper};
 use crate::keys::{KeyConf, KeyAction, KeyActionSet, TapKeyConf, HoldKeyConf, DoubleTapKeyConf, DoubleTapHoldKeyConf};
 use super::state_machines::{KeyStateMachine, KSMInit, HoldKSM, DoubleTapKSM, DoubleTapHoldKSM};

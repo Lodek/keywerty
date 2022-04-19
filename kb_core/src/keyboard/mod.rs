@@ -3,10 +3,13 @@
 /// The logical keyboard interface was drawn out considering 
 /// types which match an USB HID keyboard, that is, key scan codes are 1 byte.
 
-use crate::keys::{KeyCode, KeyId};
+use crate::keys::{KeyCode};
 
 mod r#impl;
 mod state_machines;
+
+
+pub type KeyId = u8;
 
 /// Set of events that a keyboard respond to. (inputs)
 #[derive(PartialEq, Debug, Clone, Copy)]

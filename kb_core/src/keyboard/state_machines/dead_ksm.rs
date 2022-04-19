@@ -1,5 +1,6 @@
 /// Dead key behavior implementation
-use keyboard_interface::{KeyId, Event};
+use keyboard_interface::{Event};
+use crate::keyboard::KeyId;
 use keyboard_interface::map::{KeyActionSet, DeadKeyConf};
 use crate::statem::{KeyStateMachine, KSMInit};
 

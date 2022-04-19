@@ -1,6 +1,7 @@
 /// Module introduces types used for layers and a mapper trait
-use crate::keys::{KeyCode, KeyId, LayerId, KeyConf, KeyAction, TapKeyConf, KeyActionSet};
-
+use crate::keys::{KeyCode, LayerId, KeyConf, KeyAction, TapKeyConf, KeyActionSet};
+use crate::keyboard::KeyId;
+ 
 use std::collections::HashMap;
 
 

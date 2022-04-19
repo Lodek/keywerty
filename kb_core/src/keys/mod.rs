@@ -4,7 +4,6 @@
 // probably use linux events instead
 // TODO convert this to an enum cause pretty
 pub type KeyCode = u8;
-pub type KeyId = u8;
 pub type LayerId = u8;
 
 /// Activating a key triggers an action to occur.

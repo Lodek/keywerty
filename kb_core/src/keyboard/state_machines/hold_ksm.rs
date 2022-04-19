@@ -2,7 +2,8 @@
 use std::time::{Instant, Duration};
 
 use super::super::{Event};
-use crate::keys::{KeyActionSet, HoldKeyConf, KeyId};
+use crate::keyboard::KeyId;
+use crate::keys::{KeyActionSet, HoldKeyConf};
 use super::{KeyStateMachine, KSMInit};
 
 
