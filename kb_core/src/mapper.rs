@@ -1,9 +1,8 @@
 /// Module introduces types used for layers and a mapper trait
-use crate::keys::{LayerId, KeyConf, KeyAction, TapKeyConf, KeyActionSet};
-use crate::keyboard::KeyId;
- 
 use std::collections::HashMap;
 
+use crate::keys::{LayerId, KeyConf, KeyAction, TapKeyConf, KeyActionSet};
+use crate::keyboard::KeyId;
 
 
 /// Trait to ease mapping handling keyboard configurations

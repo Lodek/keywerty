@@ -222,7 +222,7 @@ impl<T: Copy + 'static> Keyboard<T> for SMKeyboard<T>
 mod tests {
 
     use super::*;
-    use keyboard_interface::map::SimpleMapper;
+    use crate::mapper::SimpleMapper;
 
 
     #[test]
@@ -239,10 +239,6 @@ mod tests {
         assert_eq!(release_actions[0], Action::Stop(1));
     }
 
-    #[test]
-    fn test_() {
-
-    }
     // test layer setting 
     // test state machine
 }
