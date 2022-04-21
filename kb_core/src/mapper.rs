@@ -1,5 +1,5 @@
 /// Module introduces types used for layers and a mapper trait
-use crate::keys::{KeyCode, LayerId, KeyConf, KeyAction, TapKeyConf, KeyActionSet};
+use crate::keys::{LayerId, KeyConf, KeyAction, TapKeyConf, KeyActionSet};
 use crate::keyboard::KeyId;
  
 use std::collections::HashMap;
@@ -8,26 +8,26 @@ use std::collections::HashMap;
 
 /// Trait to ease mapping handling keyboard configurations
 /// when multiple layers are supported.
-pub trait LayerMapper {
-    fn get_conf(&self, layer: LayerId, key: KeyId) -> KeyConf;
+pub trait LayerMapper<T> {
+    fn get_conf(&self, layer: LayerId, key: KeyId) -> KeyConf<T>;
 }
 
 
 /// Wrap a hashmap with the LayerMapper interface
-pub struct HashMapMapper {
-    map: HashMap<(LayerId, KeyId), KeyConf>
+pub struct HashMapMapper<T> {
+    map: HashMap<(LayerId, KeyId), KeyConf<T>>
 }
 
-impl HashMapMapper {
-    pub fn new(map: HashMap<(LayerId, KeyId), KeyConf>) -> Self {
+impl<T: Copy> HashMapMapper<T> {
+    pub fn new(map: HashMap<(LayerId, KeyId), KeyConf<T>>) -> Self {
         HashMapMapper { map }
     }
 
-    pub fn get_hashmap(&mut self) -> &mut HashMap<(LayerId, KeyId), KeyConf> {
+    pub fn get_hashmap(&mut self) -> &mut HashMap<(LayerId, KeyId), KeyConf<T>> {
         &mut self.map
     }
 
-    fn get_conf(&self, layer: LayerId, key: KeyId) -> KeyConf {
+    fn get_conf(&self, layer: LayerId, key: KeyId) -> KeyConf<T> {
         self.map.get(&(layer, key)).map(|conf| *conf).unwrap_or(KeyConf::default())
     }
 }
@@ -47,10 +47,10 @@ impl SimpleMapper {
     }
 }
 
-impl LayerMapper for SimpleMapper {
-    fn get_conf(&self, layer: LayerId, key: KeyId) -> KeyConf {
+impl LayerMapper<u8> for SimpleMapper {
+    fn get_conf(&self, layer: LayerId, key: KeyId) -> KeyConf<u8> {
         let key_code = layer * key + self.num_keys;
         let key_action = KeyAction::AddKey(key_code);
-        KeyConf::Tap(TapKeyConf{tap: KeyActionSet::Single(key_action)})
+        KeyConf::Tap(TapKeyConf {tap: KeyActionSet::Single(key_action)})
     }
 }

@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use super::{Keyboard, Action, Event};
 use super::KeyId;
-use crate::keys::{LayerId, KeyCode};
+use crate::keys::{LayerId};
 use crate::mapper::{LayerMapper};
 use crate::keys::{KeyConf, KeyAction, KeyActionSet, TapKeyConf, HoldKeyConf, DoubleTapKeyConf, DoubleTapHoldKeyConf};
 use super::state_machines::{KeyStateMachine, KSMInit, HoldKSM, DoubleTapKSM, DoubleTapHoldKSM};
@@ -35,25 +35,24 @@ impl Default for SMKeyboardSettings {
 }
 
 
-pub struct SMKeyboard<LayerMapperImpl> {
+pub struct SMKeyboard<T> {
     num_keys: u8,
     default_layer: LayerId,
-    layer_mapper: LayerMapperImpl,
-    stateful_handling: Option<Box<dyn KeyStateMachine>>,
+    layer_mapper: Box<dyn LayerMapper<T>>,
+    stateful_handling: Option<Box<dyn KeyStateMachine<T>>>,
     layer_stack: Vec<LayerId>,
-    key_actions_map: BTreeMap<KeyId, KeyActionSet>,
+    key_actions_map: BTreeMap<KeyId, KeyActionSet<T>>,
     settings: SMKeyboardSettings,
 }
 
 
-impl<LayerMapperImpl> SMKeyboard<LayerMapperImpl> 
-where LayerMapperImpl: LayerMapper
+impl<T: Copy + 'static> SMKeyboard<T> 
 {
-    pub fn new(num_keys: u8, default_layer: LayerId, layer_mapper: LayerMapperImpl, settings: SMKeyboardSettings) -> Self {
+    pub fn new(num_keys: u8, default_layer: LayerId, layer_mapper: impl LayerMapper<T> + 'static, settings: SMKeyboardSettings) -> Self {
         Self {
             num_keys,
             settings,
-            layer_mapper,
+            layer_mapper: Box::new(layer_mapper),
             default_layer,
             stateful_handling: None,
             key_actions_map: BTreeMap::new(),
@@ -66,7 +65,7 @@ where LayerMapperImpl: LayerMapper
     }
 
 
-    fn handle_state_machine<'a>(&mut self, action_queue: &'a mut Vec<Action>, event: Event) {
+    fn handle_state_machine<'a>(&mut self, action_queue: &'a mut Vec<Action<T>>, event: Event) {
         let mut machine = self.stateful_handling.take().unwrap();
         let watched_key = machine.get_watched_key();
         
@@ -84,7 +83,7 @@ where LayerMapperImpl: LayerMapper
         }
     }
 
-    fn handle_event(&mut self, action_queue: &mut Vec<Action>, event: Event) {
+    fn handle_event(&mut self, action_queue: &mut Vec<Action<T>>, event: Event) {
         match event {
             Event::KeyPress(key) => {
                 self.handle_key_press(key, action_queue);
@@ -97,7 +96,7 @@ where LayerMapperImpl: LayerMapper
     }
 
 
-    fn handle_key_press(&mut self, key: KeyId, action_queue: &mut Vec<Action>) {
+    fn handle_key_press(&mut self, key: KeyId, action_queue: &mut Vec<Action<T>>) {
         match self.layer_mapper.get_conf(self.get_layer(), key) {
             KeyConf::Tap(tap_conf) => {
                 let actionset = tap_conf.tap;
@@ -123,14 +122,14 @@ where LayerMapperImpl: LayerMapper
         }
     }
 
-    fn handle_key_release(&mut self, action_queue: &mut Vec<Action>, key_id: KeyId) {
+    fn handle_key_release(&mut self, action_queue: &mut Vec<Action<T>>, key_id: KeyId) {
         // In case the user "releases" a key that wasn't pressed before,
         // a Default NoOp action will happen
         let actionset =  self.key_actions_map.remove(&key_id).unwrap_or_default();
         self.undo_actionset(key_id, actionset, action_queue);
     }
 
-    fn apply_keyaction(&mut self, key: KeyId, action: KeyAction) -> Option<Action> {
+    fn apply_keyaction(&mut self, key: KeyId, action: KeyAction<T>) -> Option<Action<T>> {
         match action {
             KeyAction::AddKey(key_code) => Some(Action::SendCode(key_code)),
             KeyAction::SetLayer(layer_id) => {
@@ -141,7 +140,7 @@ where LayerMapperImpl: LayerMapper
         }
     }
 
-    fn undo_keyaction(&mut self, key: KeyId, action: KeyAction) -> Option<Action> {
+    fn undo_keyaction(&mut self, key: KeyId, action: KeyAction<T>) -> Option<Action<T>> {
         match action {
             KeyAction::AddKey(key_code) => Some(Action::Stop(key_code)),
 
@@ -162,11 +161,11 @@ where LayerMapperImpl: LayerMapper
     }
 
     // TODO inline this whole function
-    fn actionset_apply<F>(&mut self, key: KeyId, actionset: KeyActionSet, queue: &mut Vec<Action>, mut supplier: F) 
-    where F: FnMut(&mut Self, KeyId, KeyAction) -> Option<Action> 
+    fn actionset_apply<F>(&mut self, key: KeyId, actionset: KeyActionSet<T>, queue: &mut Vec<Action<T>>, mut supplier: F)
+    where F: FnMut(&mut Self, KeyId, KeyAction<T>) -> Option<Action<T>>
     {
         // TODO should convert this to a macro or an inline function so there's no overhead
-        let mut append_if_some = |opt: Option<Action>| if opt.is_some() {queue.push(opt.unwrap())};
+        let mut append_if_some = |opt: Option<Action<T>>| if opt.is_some() {queue.push(opt.unwrap())};
 
         // FIXME generate macro to clean repetition?
         match actionset {
@@ -194,20 +193,19 @@ where LayerMapperImpl: LayerMapper
         }
     }
 
-    fn apply_actionset(&mut self, key: KeyId, actionset: KeyActionSet, action_queue: &mut Vec<Action>) {
+    fn apply_actionset(&mut self, key: KeyId, actionset: KeyActionSet<T>, action_queue: &mut Vec<Action<T>>) {
         self.actionset_apply(key, actionset, action_queue, Self::apply_keyaction)
     }
 
-    fn undo_actionset(&mut self, key: KeyId, actionset: KeyActionSet, action_queue: &mut Vec<Action>) {
+    fn undo_actionset(&mut self, key: KeyId, actionset: KeyActionSet<T>, action_queue: &mut Vec<Action<T>>) {
         self.actionset_apply(key, actionset, action_queue, Self::undo_keyaction)
     }
 }
 
 
-impl<LayerMapperImpl> Keyboard for SMKeyboard<LayerMapperImpl>
-where LayerMapperImpl: LayerMapper
+impl<T: Copy + 'static> Keyboard<T> for SMKeyboard<T>
 {
-    fn transition(&mut self, event: Event) -> Vec<Action> {
+    fn transition(&mut self, event: Event) -> Vec<Action<T>> {
         let mut actions = Vec::with_capacity(5); // magic number ew
 
         if self.stateful_handling.is_some() {

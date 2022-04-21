@@ -15,16 +15,16 @@ enum State {
 }
 
 #[derive(Debug)]
-pub struct HoldKSM {
+pub struct HoldKSM<T> {
     watched_key: KeyId,
     state: State,
-    key_conf: HoldKeyConf,
+    key_conf: HoldKeyConf<T>,
     creation: Instant,
     release_delay: Duration,
     initialized: bool,
 }
 
-impl HoldKSM {
+impl<T: Copy> HoldKSM<T> {
     pub fn new(release_delay: Duration) -> Self {
         return Self {
             creation: Instant::now(),
@@ -37,13 +37,13 @@ impl HoldKSM {
     }
 }
 
-impl KeyStateMachine for HoldKSM {
+impl<T: Copy> KeyStateMachine<T> for HoldKSM<T> {
 
     fn get_watched_key(&self) -> KeyId {
         self.watched_key
     }
 
-    fn transition<'a>(&mut self, event: Event) -> Option<KeyActionSet> {
+    fn transition<'a>(&mut self, event: Event) -> Option<KeyActionSet<T>> {
 
         if let State::Waiting = self.state {
             if (Instant::now() - self.creation) > self.release_delay {
@@ -67,10 +67,10 @@ impl KeyStateMachine for HoldKSM {
     }
 }
 
-impl KSMInit for HoldKSM {
-    type KeyConf = HoldKeyConf;
+impl<T: Copy> KSMInit<T> for HoldKSM<T> {
+    type KeyConf = HoldKeyConf<T>;
 
-    fn init_machine(&mut self, key_id: KeyId, key_conf: HoldKeyConf) {
+    fn init_machine(&mut self, key_id: KeyId, key_conf: HoldKeyConf<T>) {
         self.watched_key = key_id;
         self.key_conf = key_conf;
         self.initialized = true;

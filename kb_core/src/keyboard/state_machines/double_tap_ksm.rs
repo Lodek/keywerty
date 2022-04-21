@@ -15,19 +15,19 @@ enum State {
 }
 
 #[derive(Debug)]
-pub struct DoubleTapKSM {
+pub struct DoubleTapKSM<T> {
     state: State,
     retap_threshold: Duration,
     hold_threshold: Duration,
 
     watched_key: KeyId,
-    key_conf: DoubleTapKeyConf,
+    key_conf: DoubleTapKeyConf<T>,
     creation: Instant,
     initialized: bool,
     release_timestamp: Instant
 }
 
-impl DoubleTapKSM {
+impl<T: Copy> DoubleTapKSM<T> {
 
     pub fn new(retap_threshold: Duration, hold_threshold: Duration) -> Self {
         Self {
@@ -43,13 +43,13 @@ impl DoubleTapKSM {
     }
 }
 
-impl KeyStateMachine for DoubleTapKSM {
+impl<T: Copy> KeyStateMachine<T> for DoubleTapKSM<T> {
 
     fn get_watched_key(&self) -> KeyId {
         self.watched_key
     }
 
-    fn transition<'a>(&mut self, event: Event) -> Option<KeyActionSet> {
+    fn transition<'a>(&mut self, event: Event) -> Option<KeyActionSet<T>> {
         // first transition the current state to a new one
         match self.state {
             State::FirstTap => {
@@ -88,10 +88,10 @@ impl KeyStateMachine for DoubleTapKSM {
     }
 }
 
-impl KSMInit for DoubleTapKSM {
-    type KeyConf = DoubleTapKeyConf;
+impl<T: Copy> KSMInit<T> for DoubleTapKSM<T> {
+    type KeyConf = DoubleTapKeyConf<T>;
 
-    fn init_machine(&mut self, key_id: KeyId, key_conf: DoubleTapKeyConf) {
+    fn init_machine(&mut self, key_id: KeyId, key_conf: DoubleTapKeyConf<T>) {
         self.watched_key = key_id;
         self.key_conf = key_conf;
         self.creation = Instant::now();

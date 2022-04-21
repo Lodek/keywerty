@@ -3,11 +3,8 @@
 /// The logical keyboard interface was drawn out considering 
 /// types which match an USB HID keyboard, that is, key scan codes are 1 byte.
 
-use crate::keys::{KeyCode};
-
 mod r#impl;
 mod state_machines;
-
 
 pub type KeyId = u8;
 
@@ -38,9 +35,9 @@ impl Event {
 
 /// Set of actions a keyboard perform as consequence of inputs. (outputs)
 #[derive(Debug, Clone, PartialEq)]
-pub enum Action {
-    SendCode(KeyCode),
-    Stop(KeyCode)
+pub enum Action<T> {
+    SendCode(T),
+    Stop(T)
 }
 
 
@@ -52,18 +49,18 @@ pub enum Action {
 ///
 /// It can be thought of as a state machine, each time it receives an input
 /// it goes to a different state and produces an output
-pub trait Keyboard {
-    fn transition<'a>(&mut self, event: Event) -> Vec<Action>;
+pub trait Keyboard<T> {
+    fn transition<'a>(&mut self, event: Event) -> Vec<Action<T>>;
 }
 
 /// Wraps a keyboard into a keyboard that can receive multiple
 /// events at once.
 /// Internally each event is processed in the order it was sent.
-pub trait MultiEventKeyboard: Keyboard {
+pub trait MultiEventKeyboard<T>: Keyboard<T> {
     
     /// Sequentially Steps through all events informed and return
     /// agreggated list of actions.
-    fn transition_events<'a>(&mut self, events: &[Event]) -> Vec<Action>;
+    fn transition_events<'a>(&mut self, events: &[Event]) -> Vec<Action<T>>;
 }
 
 // TODO Add blanket implementation for MultiEventKeyboard
