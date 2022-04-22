@@ -7,4 +7,6 @@ edition = "2021"
 
 [dependencies]
 evdev-rs = "0.5.0"
-keyboard_interface = { path = "../keyboard_interface", version = "0.1.0" }
+num-traits = "0.2.4"
+libc = "0.2.124"
+kb_core = { path = "../kb_core", version = "0.1.0" }
