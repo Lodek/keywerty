@@ -1,11 +1,5 @@
 use crate::virtual_kb::{Result, Error};
 
-enum Error {
-    EpollCreate(c_int),
-    EpollMonitor(c_int),
-    EpollWait(c_int),
-}
-
 /// Listen to an event device and generates reports
 /// Event loop which should run in its own thread.
 /// Receive writting end of channel to send event report
@@ -56,95 +50,6 @@ impl EvdevListener {
     }
 }
 
-
-
-/// Safe interface around Linux's epoll.
-/// Allows creating an epoll kernel instance
-/// and monitoring a file for read events.
-struct Epoll  {
-    epoll_fd: RawFd,
-    event_buff: Vec<epoll_event>,
-}
-
-// TODO what if I convert this to an iterator?
-// it's completely unecessary but might be cool.
-impl Epoll {
-
-    /// Create new epoll instance
-    fn new(event_buff_size: usize) -> Result<Self> {
-        unsafe {
-            let fd = epoll_create1(0);
-            if fd >= 1 {
-                let epoll = Self {
-                    epoll_fd: fd,
-                    event_buff: Vec::with_capacity(event_buff_size)
-                }
-                Ok(epoll)
-            }
-            else {
-                let errno = get_errno()
-                Err(Error::EpollCreate(errno))
-            }
-        }
-    }
-         
-    /// Add file to Epoll's interest list.
-    /// The file shall only be monitored for EPOLLIN (ie read will not block).
-    /// Monitoring a previously added file will cause an error.
-    fn monitor_file(&mut self, fd: RawFd) -> Result<()> {
-        let event = epoll_event {
-            events: EPOLLPRI,
-            u64: fd
-        }
-
-        unsafe {
-            let result = epoll_ctl(self.epoll_fd, EPOLL_CTL_ADD, fd, &mut event as *mut _);
-            if result < 0 {
-                Err(Error::EpollMonitor(get_errno()))
-            }
-            else {
-                Ok(())
-            }
-        }
-    }
-
-    /// Perform an indefinite wait over the list of registered files.
-    /// `wait` blocks until any registered file is ready to read.
-    ///
-    /// Return slice with file descriptors matching the ready files.
-    fn wait(&mut self) -> Result<impl Iterator<Type=RawFd>> {
-        unsafe {
-            let never_timeout = -1;
-            let event_count = epoll_wait(self.epoll_fd, self.event_buff.as_mut_ptr(), self.event_buff.capacity(), never_timeout);
-            if event_count < 0 {
-                Err(Error::EpollWait(get_errno()))
-            }
-            else {
-                // because the ffi call writes to the buffer without updating
-                // `Vec`'s internal state, we neeed to reconstruct the vector
-                // using the result of `epoll_wait`.
-                // The `*_raw_parts` method family in rust allows us to
-                // take ownership over the internal memory buffer and reconstruct it.
-                let (buff, _, capacity) = self.event_buff.into_raw_parts();
-                self.event_buff = Vec::from_raw_parts(buff, event_count, capacity);
-                Ok(self.event_buff.iter().map(|event| *event.u64 as RawFd))
-            }
-        }
-    }
-}
-
-impl Drop for Epoll {
-    /// Close the previously created epoll instance.
-    /// Panics if `close` fails.
-    fn drop(&mut self) {
-        unsafe {
-            let result = libc::close(self.epoll_fd);
-            if result < 0 {
-                panic!("Error closing Epoll instance: {}", get_errno())
-            }
-        }
-    }
-}
 
 /// Iterator that returns an Evdev event for a give device file.
 /// Calling `next` will perform a device read, which in turn will

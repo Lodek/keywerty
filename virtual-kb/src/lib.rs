@@ -1,44 +1,26 @@
-mod virtual_dev;
+mod epoll;
 
-/*
-use evdev_rs::enums::EV_KEY;
+use std::sync::mpsc::Sender;
+use std::sync::mpsc::Receiver;
+use std::time::Duration;
 
-pub enum Error {
-    CErr(c_int)
+use kb_core::keyboard::Event;
+use kb_core::keyboard::Action;
+use kb_core::mapper::HashMapMapper;
+
+struct KeyboardConfiguration {
+    
 }
 
-type Result<T> = std::result::Result<T, Error>;
-
-
-// not sure about the vector but i'll roll with it
-pub enum RuntimeEvent<'a> {
-    Report(&'a mut EventReport),
-    Poll
+struct Configuration {
+    kb_poll_period: Duration,
+    virtual_device_name: String,
+    kb_config: KeyboardConfiguration,
 }
 
-struct Runtime {
-    // create channel
-    // create instance of evdev listener, send tx
-    // create instance of timer, send tx
-    // store thread handles
-    // loop
-    // block on channel read until timeout or report is available
-    // call evdev keyboard and generate event report
-    // send report to virtual device
-}
+//fn parse_map(map: &str) -> Result<HashMapMapper> {
+    //todo!()
+//}
 
-impl Runtime {
-    fn new() -> Self;
-    fn run<Kb>(kb: Kb) 
-        where Kb: EvdevKeyboard;
-}
 
-struct Timer {
-    fn new(period: Duration);
-    // loop, sleep, write to tx
-    // no need for hardware timer
-    // would be cool to use a signal system here
-    // but maybe for the future
-    fn run(tx: Sender<>);
-}
-*/
+
