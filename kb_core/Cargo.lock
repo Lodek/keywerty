@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "kb-core"
+name = "kb_core"
 version = "0.1.0"
