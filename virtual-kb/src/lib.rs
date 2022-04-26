@@ -1,4 +1,5 @@
 mod epoll;
+mod monitor;
 
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
@@ -21,6 +22,3 @@ struct Configuration {
 //fn parse_map(map: &str) -> Result<HashMapMapper> {
     //todo!()
 //}
-
-
-
