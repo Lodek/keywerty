@@ -13,7 +13,6 @@ mod double_tap_ksm;
 mod double_tap_hold_ksm;
 
 use crate::keyboard::{Event, Action};
-use crate::keyboard::KeyId;
 use crate::keys::{KeyConf, KeyActionSet};
 
 pub use hold_ksm::{HoldKSM};
@@ -21,18 +20,18 @@ pub use double_tap_ksm::{DoubleTapKSM};
 pub use double_tap_hold_ksm::{DoubleTapHoldKSM};
 
 
-pub trait KeyStateMachine<T> {
+pub trait KeyStateMachine<KeyId, T> {
 
     /// Steps the state machine from the current events
     /// The state machine will either return a KeyActionSet or None.
     /// Once a state machine returns an KeyActionSet it has reached one 
     /// of its accepting states and should be discarded.
-    fn transition<'a>(&mut self, event: Event) -> Option<KeyActionSet<T>>;
+    fn transition<'a>(&mut self, event: Event<KeyId>) -> Option<KeyActionSet<T>>;
 
     fn get_watched_key(&self) -> KeyId;
 }
 
-pub trait KSMInit<T>: KeyStateMachine<T> {
+pub trait KSMInit<KeyId, T>: KeyStateMachine<KeyId, T> {
     type KeyConf;
 
     /// Initialize a State Machine instance.

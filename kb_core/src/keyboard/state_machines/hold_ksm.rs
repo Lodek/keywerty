@@ -1,8 +1,7 @@
 /// Module for Key State Machine implementation for the `Hold` key configuration
 use std::time::{Instant, Duration};
 
-use super::super::{Event};
-use crate::keyboard::KeyId;
+use crate::keyboard::Event;
 use crate::keys::{KeyActionSet, HoldKeyConf};
 use super::{KeyStateMachine, KSMInit};
 
@@ -15,7 +14,7 @@ enum State {
 }
 
 #[derive(Debug)]
-pub struct HoldKSM<T> {
+pub struct HoldKSM<KeyId, T> {
     watched_key: KeyId,
     state: State,
     key_conf: HoldKeyConf<T>,
@@ -24,7 +23,7 @@ pub struct HoldKSM<T> {
     initialized: bool,
 }
 
-impl<T: Copy> HoldKSM<T> {
+impl<KeyId, T: Copy> HoldKSM<KeyId, T> {
     pub fn new(release_delay: Duration) -> Self {
         return Self {
             creation: Instant::now(),
@@ -37,13 +36,13 @@ impl<T: Copy> HoldKSM<T> {
     }
 }
 
-impl<T: Copy> KeyStateMachine<T> for HoldKSM<T> {
+impl<KeyId, T: Copy> KeyStateMachine<KeyId, T> for HoldKSM<KeyId, T> {
 
     fn get_watched_key(&self) -> KeyId {
         self.watched_key
     }
 
-    fn transition<'a>(&mut self, event: Event) -> Option<KeyActionSet<T>> {
+    fn transition<'a>(&mut self, event: Event<KeyId>) -> Option<KeyActionSet<T>> {
 
         if let State::Waiting = self.state {
             if (Instant::now() - self.creation) > self.release_delay {
@@ -67,7 +66,7 @@ impl<T: Copy> KeyStateMachine<T> for HoldKSM<T> {
     }
 }
 
-impl<T: Copy> KSMInit<T> for HoldKSM<T> {
+impl<KeyId, T: Copy> KSMInit<KeyId, T> for HoldKSM<KeyId, T> {
     type KeyConf = HoldKeyConf<T>;
 
     fn init_machine(&mut self, key_id: KeyId, key_conf: HoldKeyConf<T>) {

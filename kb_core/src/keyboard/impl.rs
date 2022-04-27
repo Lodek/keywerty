@@ -3,7 +3,6 @@ use std::time::{Duration};
 use std::collections::BTreeMap;
 
 use super::{Keyboard, Action, Event};
-use super::KeyId;
 use crate::keys::{LayerId};
 use crate::mapper::{LayerMapper};
 use crate::keys::{KeyConf, KeyAction, KeyActionSet, TapKeyConf, HoldKeyConf, DoubleTapKeyConf, DoubleTapHoldKeyConf};
@@ -35,20 +34,20 @@ impl Default for SMKeyboardSettings {
 }
 
 
-pub struct SMKeyboard<T> {
+pub struct SMKeyboard<KeyId, T> {
     num_keys: u8,
     default_layer: LayerId,
-    layer_mapper: Box<dyn LayerMapper<T>>,
-    stateful_handling: Option<Box<dyn KeyStateMachine<T>>>,
+    layer_mapper: Box<dyn LayerMapper<KeyId, T>>,
+    stateful_handling: Option<Box<dyn KeyStateMachine<KeyId, T>>>,
     layer_stack: Vec<LayerId>,
     key_actions_map: BTreeMap<KeyId, KeyActionSet<T>>,
     settings: SMKeyboardSettings,
 }
 
 
-impl<T: Copy + 'static> SMKeyboard<T> 
+impl<KeyId: Copy+ 'static, T: Copy + 'static> SMKeyboard<KeyId, T> 
 {
-    pub fn new(num_keys: u8, default_layer: LayerId, layer_mapper: impl LayerMapper<T> + 'static, settings: SMKeyboardSettings) -> Self {
+    pub fn new(num_keys: u8, default_layer: LayerId, layer_mapper: impl LayerMapper<KeyId, T> + 'static, settings: SMKeyboardSettings) -> Self {
         Self {
             num_keys,
             settings,
@@ -65,7 +64,7 @@ impl<T: Copy + 'static> SMKeyboard<T>
     }
 
 
-    fn handle_state_machine<'a>(&mut self, action_queue: &'a mut Vec<Action<T>>, event: Event) {
+    fn handle_state_machine<'a>(&mut self, action_queue: &'a mut Vec<Action<T>>, event: Event<KeyId>) {
         let mut machine = self.stateful_handling.take().unwrap();
         let watched_key = machine.get_watched_key();
         
@@ -83,7 +82,7 @@ impl<T: Copy + 'static> SMKeyboard<T>
         }
     }
 
-    fn handle_event(&mut self, action_queue: &mut Vec<Action<T>>, event: Event) {
+    fn handle_event(&mut self, action_queue: &mut Vec<Action<T>>, event: Event<KeyId>) {
         match event {
             Event::KeyPress(key) => {
                 self.handle_key_press(key, action_queue);
@@ -203,9 +202,9 @@ impl<T: Copy + 'static> SMKeyboard<T>
 }
 
 
-impl<T: Copy + 'static> Keyboard<T> for SMKeyboard<T>
+impl<KeyId: Copy + 'static, T: Copy + 'static> Keyboard<KeyId, T> for SMKeyboard<KeyId, T>
 {
-    fn transition(&mut self, event: Event) -> Vec<Action<T>> {
+    fn transition(&mut self, event: Event<KeyId>) -> Vec<Action<T>> {
         let mut actions = Vec::with_capacity(5); // magic number ew
 
         if self.stateful_handling.is_some() {

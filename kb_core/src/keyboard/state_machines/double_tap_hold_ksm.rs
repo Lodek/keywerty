@@ -1,8 +1,7 @@
 use std::time::{Instant, Duration};
 
-use super::super::Event;
+use crate::keyboard::Event;
 use crate::keys::{KeyActionSet, DoubleTapHoldKeyConf};
-use crate::keyboard::KeyId;
 
 use super::{KeyStateMachine, KSMInit};
 
@@ -14,7 +13,7 @@ enum State {
     Tap
 }
 
-pub struct DoubleTapHoldKSM<T> {
+pub struct DoubleTapHoldKSM<KeyId, T> {
     state: State,
     key_conf: DoubleTapHoldKeyConf<T>,
     watched_key: KeyId,
@@ -24,7 +23,7 @@ pub struct DoubleTapHoldKSM<T> {
     released: Instant,
 }
 
-impl<T: Copy> DoubleTapHoldKSM<T> {
+impl<KeyId, T: Copy> DoubleTapHoldKSM<KeyId, T> {
     pub fn new(hold_threshold: Duration, retap_threshold: Duration) -> Self {
         Self {
             hold_threshold,
@@ -38,13 +37,13 @@ impl<T: Copy> DoubleTapHoldKSM<T> {
     }
 }
 
-impl<T: Copy> KeyStateMachine<T> for DoubleTapHoldKSM<T> {
+impl<KeyId, T: Copy> KeyStateMachine<KeyId, T> for DoubleTapHoldKSM<KeyId, T> {
 
     fn get_watched_key(&self) -> KeyId {
         self.watched_key
     }
 
-    fn transition<'a>(&mut self, event: Event) -> Option<KeyActionSet<T>> {
+    fn transition<'a>(&mut self, event: Event<KeyId>) -> Option<KeyActionSet<T>> {
         match self.state {
             //TODO figure out how to humanize these checks (macro or inline function?)
             State::Waiting => {
@@ -71,7 +70,7 @@ impl<T: Copy> KeyStateMachine<T> for DoubleTapHoldKSM<T> {
 
 }
 
-impl<T: Copy> KSMInit<T> for DoubleTapHoldKSM<T> {
+impl<KeyId, T: Copy> KSMInit<KeyId, T> for DoubleTapHoldKSM<KeyId, T> {
     type KeyConf = DoubleTapHoldKeyConf<T>;
 
     fn init_machine(&mut self, key_id: KeyId, key_conf: DoubleTapHoldKeyConf<T>) {

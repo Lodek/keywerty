@@ -1,5 +1,5 @@
 /// Dead key behavior implementation
-use keyboard_interface::{Event};
+use keyboard_interface::{Event<Id>};
 use crate::keyboard::KeyId;
 use keyboard_interface::map::{KeyActionSet, DeadKeyConf};
 use crate::statem::{KeyStateMachine, KSMInit};
@@ -19,7 +19,7 @@ pub struct DeadKeyKMS {
 
 impl KeyStateMachine for DeadKeyKSM {
 
-    fn transition<'a>(&mut self, event: Event) -> Option<KeyActionSet> {
+    fn transition<'a>(&mut self, event: Event<Id>) -> Option<KeyActionSet> {
         None
     }
 
