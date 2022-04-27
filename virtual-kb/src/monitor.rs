@@ -14,7 +14,7 @@ use kb_core::keyboard::Event;
 /// 
 /// On its own, `next` will be a blocking call, as such this should be
 /// paired with `Epoll` to build a non_blocking event loop
-struct EventIter {
+pub struct EventIter {
     device: Device
 }
 
@@ -29,9 +29,9 @@ impl EventIter {
 }
 
 impl Iterator for EventIter {
-    type Item = Event;
+    type Item = Event<EV_KEY>;
 
-    fn next(&mut self) -> Option<Event> {
+    fn next(&mut self) -> Option<Self::Item> {
         // FIXME this implementation completely ignores the SYN_DROPPED
         // events from evdev and must be revisted.
         // See:
@@ -42,6 +42,8 @@ impl Iterator for EventIter {
             Ok((_, InputEvent { event_code: EventCode::EV_KEY(ev_key), value: 1, ..})) => Some(Event::KeyPress(ev_key)),
             Ok(ok) => {
                 // TODO debug log with skipped value
+                // https://rust-lang-nursery.github.io/rust-cookbook/development_tools/debugging/config_log.html
+                // https://docs.rs/log/latest/log/
                 None
             },
             Err(err) => {
@@ -51,5 +53,3 @@ impl Iterator for EventIter {
         }
     }
 }
-
-

@@ -11,9 +11,6 @@ use libc::c_int;
 use num_traits::AsPrimitive;
 
 
-pub trait AnyRaw: AsRawFd + Any {
-}
-
 /// Safe interface around Linux's epoll.
 /// Allows creating an epoll kernel instance
 /// and monitoring a file for read events.

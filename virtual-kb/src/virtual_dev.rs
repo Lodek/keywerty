@@ -7,6 +7,7 @@ use std::iter::once;
 
 use evdev_rs::{TimeVal, UInputDevice, InputEvent, UninitDevice, DeviceWrapper};
 use evdev_rs::enums::{EV_SYN, EV_KEY, EventType, EventCode, int_to_ev_key};
+use kb_core::keyboard::Action;
 
 
 #[derive(Debug)]
@@ -66,7 +67,7 @@ impl UInputKeyboard {
     /// Build and emit a report to the underlyin `uinput` device.
     ///
     /// Reports are chain of events terminated with a `SYN_REPORT` event.
-    pub fn emit_events(&mut self, pairs: &[(EV_KEY, i32)]) -> Result<()> {
+    pub fn emit_events(&mut self, actions: &[Action<EV_KEY>]) -> Result<()> {
         let timeval = Self::build_timeval();
 
         // According to the examples in the docs, `SYN_REPORT` events should
@@ -77,12 +78,19 @@ impl UInputKeyboard {
         let report_eventcode = EventCode::EV_SYN(EV_SYN::SYN_REPORT);
         let report_event = InputEvent::new(&timeval, &report_eventcode, 0);
 
-        pairs.iter()
-            .map(|(key_code, value)| InputEvent::new(&timeval, &EventCode::EV_KEY(*key_code), *value))
+        actions.iter()
+            .map(|action| Self::action_to_input_event(&timeval, action))
             .chain(once(report_event))
             .map(|input_event| self.dev.write_event(&input_event))
             .fold(Ok(()), |acc, result| acc.and(result))
             .map_err(|e| e.into())
+    }
+
+    fn action_to_input_event(timeval: &TimeVal, action: &Action<EV_KEY>) -> InputEvent {
+        match action {
+            Action::SendCode(ev_key) => InputEvent::new(&timeval, &EventCode::EV_KEY(*ev_key), 1),
+            Action::Stop(ev_key) => InputEvent::new(&timeval, &EventCode::EV_KEY(*ev_key), 0),
+        }
     }
 
     /// Return an evdev `TimeVal` for the current instant
