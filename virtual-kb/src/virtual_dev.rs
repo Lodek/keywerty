@@ -1,38 +1,15 @@
 /// Represents a virtual uinput device.
 /// Initializes device and emits events
 
-use std::io::Error as IOError;
-use std::time::{SystemTime, SystemTimeError};
+use std::time::SystemTime;
 use std::iter::once;
 
 use evdev_rs::{TimeVal, UInputDevice, InputEvent, UninitDevice, DeviceWrapper};
 use evdev_rs::enums::{EV_SYN, EV_KEY, EventType, EventCode, int_to_ev_key};
 use kb_core::keyboard::Action;
 
-
-#[derive(Debug)]
-pub enum Error {
-    IO(IOError),
-    Time(SystemTimeError),
-    DeviceInit,
-}
-
-
-impl From<IOError> for Error {
-    fn from(io_error: IOError) -> Error {
-        Error::IO(io_error)
-    }
-}
-
-
-impl From<SystemTimeError> for Error {
-    fn from(sys_time_err: SystemTimeError) -> Error {
-        Error::Time(sys_time_err)
-    }
-}
-
-
-type Result<T> = std::result::Result<T, Error>;
+use crate::Result;
+use crate::Error;
 
 
 /// Models a Virtual Linux device, based on the kernel's `uinput` module.

@@ -1,5 +1,7 @@
 use std::io;
 use std::fs::File;
+use std::os::unix::io::AsRawFd;
+use std::os::unix::prelude::RawFd;
 
 use evdev_rs::ReadFlag;
 use evdev_rs::Device;
@@ -16,6 +18,12 @@ use kb_core::keyboard::Event;
 /// paired with `Epoll` to build a non_blocking event loop
 pub struct EventIter {
     device: Device
+}
+
+impl AsRawFd for EventIter {
+    fn as_raw_fd(&self) -> RawFd {
+        self.device.file().as_raw_fd()
+    }
 }
 
 impl EventIter {

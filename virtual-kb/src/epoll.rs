@@ -23,7 +23,7 @@ pub struct Epoll  {
 impl Epoll {
 
     /// Create new epoll instance
-    fn new(event_buff_size: usize, read_timeout: Duration) -> Result<Self> {
+    pub fn new(event_buff_size: usize, read_timeout: Duration) -> Result<Self> {
         unsafe {
             let fd = libc::epoll_create1(0);
             if fd >= 1 {
