@@ -5,6 +5,7 @@
 
 //mod r#impl;
 //mod state_machines;
+pub mod echoer;
 
 /// Set of events that a keyboard respond to. (inputs)
 #[derive(PartialEq, Debug, Clone, Copy)]
