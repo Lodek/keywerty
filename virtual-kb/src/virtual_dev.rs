@@ -38,6 +38,7 @@ impl UInputKeyboard {
             .fold(Ok(()), |acc, result| acc.and(result))?;
                 
         let uinput_dev = UInputDevice::create_from_device(&dev)?;
+        eprintln!("created uinput device: {:?}", uinput_dev.syspath().unwrap());
         Ok(Self { dev: uinput_dev })
     }
 
@@ -55,10 +56,17 @@ impl UInputKeyboard {
         let report_eventcode = EventCode::EV_SYN(EV_SYN::SYN_REPORT);
         let report_event = InputEvent::new(&timeval, &report_eventcode, 0);
 
+        if actions.len() == 0 {
+            return Ok(());
+        }
+
         actions.iter()
             .map(|action| Self::action_to_input_event(&timeval, action))
             .chain(once(report_event))
-            .map(|input_event| self.dev.write_event(&input_event))
+            .map(|input_event| {
+                eprintln!("emitting event: {:?}", input_event);
+                self.dev.write_event(&input_event)
+            })
             .fold(Ok(()), |acc, result| acc.and(result))
             .map_err(|e| e.into())
     }
@@ -72,10 +80,8 @@ impl UInputKeyboard {
 
     /// Return an evdev `TimeVal` for the current instant
     fn build_timeval() -> TimeVal {
-        let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
-        let secs = now.as_secs().try_into().unwrap();
-        let micros = now.as_micros().try_into().unwrap();
-        TimeVal::new(secs, micros)
+        let now = SystemTime::now();
+        TimeVal::try_from(now).unwrap()
     }
 
     /// Return iterator with every EV_KEY variant
