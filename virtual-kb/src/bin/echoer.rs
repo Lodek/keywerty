@@ -34,7 +34,7 @@ fn main() {
 
     let keyboard = EchoerKb {};
 
-    let mut runtime = Runtime::new(event_iter, virtual_dev, keyboard, Duration::from_millis(100)).unwrap();
+    let mut runtime = Runtime::new(event_iter, virtual_dev, keyboard, Duration::from_secs(300)).unwrap();
     runtime.run()
 }
 
