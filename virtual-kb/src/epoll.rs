@@ -52,7 +52,7 @@ impl Epoll {
     {
         let fd = file.as_raw_fd();
         let mut event = libc::epoll_event {
-            events: libc::EPOLLPRI as u32,
+            events: (libc::EPOLLPRI | libc::EPOLLIN) as u32,
             u64: fd as u64
         };
 
@@ -76,6 +76,7 @@ impl Epoll {
             // epoll timeout expects a number of milliseconds
             let timeout: c_int = self.read_timeout.as_millis().as_();
             let event_count = libc::epoll_wait(self.epoll_fd, self.event_buff.as_mut_ptr(), self.event_buff.capacity().as_(), timeout);
+            eprintln!("epoll_wait result: {}", event_count);
             if event_count < 0 {
                 Err(Error::last_os_error())
             }
