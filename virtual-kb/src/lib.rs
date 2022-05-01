@@ -90,13 +90,14 @@ impl Runtime {
                 let mut ready_iter = self.epoll.wait().unwrap();
                 poll = matches!(ready_iter.next(), None);
             }
-            self.emit_event(poll).unwrap();
+            self.emit_events(poll);
         }
     }
 
-    fn emit_event(&mut self, poll: bool) -> Result<()> {
-        let event = if poll { Event::Poll } else { self.emitter.next().unwrap_or(Event::Poll) };
-        let actions = self.keyboard.transition(event);
-        self.virtual_dev.emit_events(&actions)
+    fn emit_events(&mut self, poll: bool) {
+        for event in &mut self.emitter {
+            let actions = self.keyboard.transition(event);
+            self.virtual_dev.emit_events(&actions).unwrap();
+        }
     }
 }
