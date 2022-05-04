@@ -1,221 +1,241 @@
+/// Keyboard trait implementation using state machines
 
-use std::time::{Duration};
 use std::collections::BTreeMap;
+use std::time::Duration;
+use std::fmt::Debug;
 
-use super::{Keyboard, Action, Event};
-use crate::keys::{LayerId};
-use crate::mapper::{LayerMapper};
-use crate::keys::{KeyConf, KeyAction, KeyActionSet, TapKeyConf, HoldKeyConf, DoubleTapKeyConf, DoubleTapHoldKeyConf};
-use super::state_machines::{KeyStateMachine, KSMInit, HoldKSM, DoubleTapKSM, DoubleTapHoldKSM};
+use crate::keyboard::state_machines as sm;
+use crate::keyboard::state_machines::KSMInit;
+use crate::keyboard::state_machines::KeyStateMachine;
+use crate::mapper::LayerMapper;
+use super::Keyboard;
+use super::Action;
+use super::Event;
+use crate::keys;
+
+
+type PendingKeyAction<KeyId, T> = (KeyId, keys::KeyActionSet<T>);
+
 
 #[derive(Debug, Clone, Copy)]
 pub struct SMKeyboardSettings {
-    pub hold_kms_delay: Duration,
+    pub hold_ksm_delay: Duration,
 
-    pub dtkms_retap_delay: Duration,
-    pub dtkms_hold_delay: Duration,
+    pub dtksm_retap_delay: Duration,
+    pub dtksm_hold_delay: Duration,
 
-    pub dthkms_retap_delay: Duration,
-    pub dthkms_hold_delay: Duration,
+    pub dthksm_retap_delay: Duration,
+    pub dthksm_hold_delay: Duration,
 }
 
 impl Default for SMKeyboardSettings {
     fn default() -> Self {
         SMKeyboardSettings {
-            hold_kms_delay: Duration::from_millis(100),
+            hold_ksm_delay: Duration::from_millis(100),
 
-            dtkms_retap_delay: Duration::from_millis(100),
-            dtkms_hold_delay: Duration::from_millis(100),
+            dtksm_retap_delay: Duration::from_millis(100),
+            dtksm_hold_delay: Duration::from_millis(100),
 
-            dthkms_retap_delay: Duration::from_millis(100),
-            dthkms_hold_delay: Duration::from_millis(100),
+            dthksm_retap_delay: Duration::from_millis(100),
+            dthksm_hold_delay: Duration::from_millis(100),
         }
     }
 }
 
 
-pub struct SMKeyboard<KeyId, T> {
-    num_keys: u8,
-    default_layer: LayerId,
-    layer_mapper: Box<dyn LayerMapper<KeyId, T>>,
-    stateful_handling: Option<Box<dyn KeyStateMachine<KeyId, T>>>,
-    layer_stack: Vec<LayerId>,
-    key_actions_map: BTreeMap<KeyId, KeyActionSet<T>>,
+pub struct SMKeyboard<KeyId, T, Mapper> {
+    default_layer: keys::LayerId,
+    layer_mapper: Mapper,
+    layer_stack: Vec<keys::LayerId>,
+    active_key_actions: BTreeMap<KeyId, keys::KeyActionSet<T>>,
+    state_machines: BTreeMap<KeyId, Box<dyn KeyStateMachine<KeyId, T>>>,
     settings: SMKeyboardSettings,
 }
 
 
-impl<KeyId: Copy+ 'static, T: Copy + 'static> SMKeyboard<KeyId, T> 
+impl<KeyId, T, Mapper> SMKeyboard<KeyId, T, Mapper> 
+where KeyId: Copy + PartialEq + Ord + Debug + 'static,
+      T: Copy + 'static,
+      Mapper: LayerMapper<KeyId, T>
 {
-    pub fn new(num_keys: u8, default_layer: LayerId, layer_mapper: impl LayerMapper<KeyId, T> + 'static, settings: SMKeyboardSettings) -> Self {
+    pub fn new(default_layer: keys::LayerId, layer_mapper: Mapper, settings: SMKeyboardSettings) -> Self {
         Self {
-            num_keys,
             settings,
-            layer_mapper: Box::new(layer_mapper),
             default_layer,
-            stateful_handling: None,
-            key_actions_map: BTreeMap::new(),
-            layer_stack: Vec::with_capacity(num_keys.into()),
+            layer_mapper: layer_mapper,
+            state_machines: BTreeMap::new(),
+            active_key_actions: BTreeMap::new(),
+            layer_stack: Vec::new(),
         }
     }
 
-    fn get_layer(&self) -> LayerId {
-        self.layer_stack.last().map(|layer| layer.clone()).unwrap_or(self.default_layer) 
+    fn get_active_layer(&self) -> keys::LayerId {
+        self.layer_stack.last().map(|layer| *layer).unwrap_or(self.default_layer) 
     }
 
-
-    fn handle_state_machine<'a>(&mut self, action_queue: &'a mut Vec<Action<T>>, event: Event<KeyId>) {
-        let mut machine = self.stateful_handling.take().unwrap();
-        let watched_key = machine.get_watched_key();
-        
-        if let Some(actionset) = machine.transition(event) {
-            self.apply_actionset(machine.get_watched_key(), actionset, action_queue);
-            self.stateful_handling = None;
-        }
-        else {
-            self.stateful_handling = Some(machine);
-        }
-
-        // huh?
-        if watched_key != event.get_key_id() && !event.is_key_press() {
-            self.handle_event(action_queue, event);
-        }
-    }
-
-    fn handle_event(&mut self, action_queue: &mut Vec<Action<T>>, event: Event<KeyId>) {
-        match event {
-            Event::KeyPress(key) => {
-                self.handle_key_press(key, action_queue);
+    /// receive key id and action, mutate keyboard and possibly generate action
+    fn handle_key_action(&mut self, key_action: &keys::KeyAction<T>) -> Option<Action<T>> {
+        match key_action {
+            keys::KeyAction::SendKey(action) => {
+                Some(Action::SendCode(*action))
             },
-            Event::KeyRelease(key_id) => {
-                self.handle_key_release(action_queue, key_id);
-            }
-            Event::Poll => { },
-        }
-    }
-
-
-    fn handle_key_press(&mut self, key: KeyId, action_queue: &mut Vec<Action<T>>) {
-        match self.layer_mapper.get_conf(self.get_layer(), key) {
-            KeyConf::Tap(tap_conf) => {
-                let actionset = tap_conf.tap;
-                self.apply_actionset(key, actionset, action_queue);
-                self.key_actions_map.insert(key, actionset);
+            keys::KeyAction::StopKey(action) => {
+                Some(Action::Stop(*action))
             },
-            // FIXME so much repetition dude
-            KeyConf::Hold(key_conf) => {
-                let mut ksm = HoldKSM::new(self.settings.hold_kms_delay);
-                ksm.init_machine(key, key_conf);
-                self.stateful_handling = Some(Box::new(ksm));
-            },
-            KeyConf::DoubleTap(key_conf) => {
-                let mut ksm = DoubleTapKSM::new(self.settings.dtkms_retap_delay, self.settings.dtkms_hold_delay);
-                ksm.init_machine(key, key_conf);
-                self.stateful_handling = Some(Box::new(ksm));
-            },
-            KeyConf::DoubleTapHold(key_conf) => {
-                let mut ksm = DoubleTapHoldKSM::new(self.settings.dthkms_retap_delay, self.settings.dthkms_hold_delay);
-                ksm.init_machine(key, key_conf);
-                self.stateful_handling = Some(Box::new(ksm));
-            }
-        }
-    }
-
-    fn handle_key_release(&mut self, action_queue: &mut Vec<Action<T>>, key_id: KeyId) {
-        // In case the user "releases" a key that wasn't pressed before,
-        // a Default NoOp action will happen
-        let actionset =  self.key_actions_map.remove(&key_id).unwrap_or_default();
-        self.undo_actionset(key_id, actionset, action_queue);
-    }
-
-    fn apply_keyaction(&mut self, key: KeyId, action: KeyAction<T>) -> Option<Action<T>> {
-        match action {
-            KeyAction::AddKey(key_code) => Some(Action::SendCode(key_code)),
-            KeyAction::SetLayer(layer_id) => {
-                self.layer_stack.push(layer_id);
+            keys::KeyAction::PushLayer(layer_id) => {
+                self.layer_stack.push(*layer_id);
                 None
             },
-            KeyAction::NoOp => None
-        }
-    }
-
-    fn undo_keyaction(&mut self, key: KeyId, action: KeyAction<T>) -> Option<Action<T>> {
-        match action {
-            KeyAction::AddKey(key_code) => Some(Action::Stop(key_code)),
-
-            // FIXME this is wrong. *Any* released layer key will pop the last 
-            // inserted layer, which is incorrect.
-            // If key 1 pushes layer A, key 2 pushes layer B and key 1 gets released
-            // while key 2 is pressed, layer B will be popped and it will go to layer A.
-            // 
-            // A better impl of this would be an ordered list of layer pushes
-            // and SetLayer release would remove the first entry that matches
-            // the KeyId, LayerId pair.
-            KeyAction::SetLayer(layer_id) => {
+            keys::KeyAction::PopLayer(layer_id) => {
+                // FIXME this is incorrect as it will only pop
+                // the last layer in the stack.
                 self.layer_stack.pop();
                 None
             },
-            KeyAction::NoOp => None
-        }
-    }
-
-    // TODO inline this whole function
-    fn actionset_apply<F>(&mut self, key: KeyId, actionset: KeyActionSet<T>, queue: &mut Vec<Action<T>>, mut supplier: F)
-    where F: FnMut(&mut Self, KeyId, KeyAction<T>) -> Option<Action<T>>
-    {
-        // TODO should convert this to a macro or an inline function so there's no overhead
-        let mut append_if_some = |opt: Option<Action<T>>| if opt.is_some() {queue.push(opt.unwrap())};
-
-        // FIXME generate macro to clean repetition?
-        match actionset {
-            KeyActionSet::Single(ka1) => {
-                let opt = supplier(self, key, ka1);
-                append_if_some(opt);
-            }
-            KeyActionSet::Double(ka1, ka2) => {
-                let opt = supplier(self, key, ka1);
-                append_if_some(opt);
-
-                let opt = supplier(self, key, ka2);
-                append_if_some(opt);
+            keys::KeyAction::NoOp => {
+                None
             },
-            KeyActionSet::Triple(ka1, ka2, ka3) => {
-                let opt = supplier(self, key, ka1);
-                append_if_some(opt);
-
-                let opt = supplier(self, key, ka2);
-                append_if_some(opt);
-                
-                let opt = supplier(self, key, ka3);
-                append_if_some(opt);
-            }
+            keys::KeyAction::ToggleKey(action) => {
+                // TODO
+                todo!()
+            },
+            keys::KeyAction::ToggleLayer(action) => {
+                // TODO
+                todo!()
+            },
         }
     }
 
-    fn apply_actionset(&mut self, key: KeyId, actionset: KeyActionSet<T>, action_queue: &mut Vec<Action<T>>) {
-        self.actionset_apply(key, actionset, action_queue, Self::apply_keyaction)
-    }
 
-    fn undo_actionset(&mut self, key: KeyId, actionset: KeyActionSet<T>, action_queue: &mut Vec<Action<T>>) {
-        self.actionset_apply(key, actionset, action_queue, Self::undo_keyaction)
-    }
-}
+    /// Handle key press by verifying whether there exists a state machine to process the pressed key.
+    /// Create a state machine and initialize it if necessary.
+    fn handle_key_press_event(&mut self, event: &Event<KeyId>) {
+        if !event.is_key_press() {
+            return;
+        }
 
+        let key_id = event.get_key_id().unwrap();
 
-impl<KeyId: Copy + 'static, T: Copy + 'static> Keyboard<KeyId, T> for SMKeyboard<KeyId, T>
-{
-    fn transition(&mut self, event: Event<KeyId>) -> Vec<Action<T>> {
-        let mut actions = Vec::with_capacity(5); // magic number ew
-
-        if self.stateful_handling.is_some() {
-            self.handle_state_machine(&mut actions, event);
+        // A pressed key for which there exists an active state machine
+        // does not need handling, as the machine will be subsequently
+        // executed in the transition phase.
+        if self.state_machines.contains_key(key_id) {
+            // debug log
+            eprintln!("active state machine for key {:?}", key_id);
+        }
+        else if let Some(conf) = self.layer_mapper.get_conf(&self.get_active_layer(), key_id) {
+            let machine = self.build_machine(key_id, conf);
+            self.state_machines.insert(*key_id, machine);
         }
         else {
-            self.handle_event(&mut actions, event);
+            // TODO use error log
+            eprintln!("Ignored missing key configuration for: layer_id={:?} key_id={:?}", self.get_active_layer(), key_id);
         }
-        return actions;
+    }
+
+    /// Key release events check whether the key is handled by an active state machine
+    /// otherwise, it will return the inverted action that was applied for that key.
+    fn handle_key_release_event(&mut self, event: &Event<KeyId>) -> Option<PendingKeyAction<KeyId, T>> {
+        // defensive programming in case of api missuse
+        if matches!(event, Event::KeyRelease(_)) {
+            return None;
+        }
+
+        let key_id = event.get_key_id().unwrap();
+
+        // the presence of an active state machine for the given key_id means
+        // it will handle that key.
+        if self.state_machines.contains_key(key_id) {
+            None
+        }
+        else if self.active_key_actions.contains_key(key_id) {
+            let actionset = self.active_key_actions.remove(key_id).unwrap();
+            let actionset = actionset.invert();
+            Some((*key_id, actionset))
+        }
+        else {
+            // TODO error log 
+            eprintln!("received release key event for a key that was not pressed: {:?}", key_id);
+            None
+        }
+    }
+
+    /// build and initialize the correct state machine from a key conf
+    fn build_machine(&mut self, key_id: &KeyId, key_conf: keys::KeyConf<T>) -> Box<dyn KeyStateMachine<KeyId, T>> {
+        match key_conf {
+            keys::KeyConf::Tap(conf) => {
+                let mut ksm = sm::TapKSM::new();
+                ksm.init_machine(*key_id, conf);
+                Box::new(ksm)
+            }
+            keys::KeyConf::Hold(conf) => {
+                let mut ksm = sm::HoldKSM::new(self.settings.hold_ksm_delay);
+                ksm.init_machine(*key_id, conf);
+                Box::new(ksm)
+            },
+            keys::KeyConf::DoubleTap(conf) => todo!(),
+            keys::KeyConf::DoubleTapHold(conf) => todo!(),
+        }
+    }
+
+    fn drop_finished_machines(&mut self) {
+        let finished_machines = self.state_machines.iter()
+            .filter(|(_, machine)| machine.is_finished())
+            .map(|(key_id, _)| *key_id)
+            .collect::<Vec<_>>();
+
+        for key_id in finished_machines.into_iter() {
+            self.state_machines.remove(&key_id);
+        }
     }
 }
+
+
+impl<KeyId, T, Mapper> Keyboard<KeyId, T> for SMKeyboard<KeyId, T, Mapper>
+where KeyId: Ord + Copy + PartialEq + Debug + 'static,
+      T: Copy + 'static,
+      Mapper: LayerMapper<KeyId, T>
+{
+    fn transition(&mut self, event: Event<KeyId>) -> Vec<Action<T>> {
+
+        let mut actions = Vec::new();
+        let mut pending_action_q = Vec::with_capacity(10);
+
+        match &event {
+            Event::KeyPress(_) => {
+                self.handle_key_press_event(&event);
+            },
+            Event::KeyRelease(_) => {
+                if let Some(pending_action) = self.handle_key_release_event(&event) {
+                    pending_action_q.push(pending_action);
+                }
+            },
+            Event::Poll => { }
+        }
+
+        // map state machine steps into pending key actions
+        for (key_id, machine) in self.state_machines.iter_mut() {
+            if let Some(key_actions) = machine.transition(&event) {
+                self.active_key_actions.insert(*key_id, key_actions.clone());
+                pending_action_q.push((*key_id, key_actions));
+            }
+        }
+
+        // map pending key actions into actions
+        for (key_id, key_actions) in pending_action_q.iter() {
+            for key_action in key_actions.get_actions().iter() {
+                if let Some(action) = self.handle_key_action(key_action) {
+                    actions.push(action);
+                }
+            }
+        }
+
+        self.drop_finished_machines();
+
+        actions
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -241,16 +261,3 @@ mod tests {
     // test layer setting 
     // test state machine
 }
-
-// Does the state machine paradigm works for key releases? I guess it's possible to implement a
-// statemachine that will cause a faulty behavior because the algorithm assumes that once a stateM
-// returns something, it's done and it can be discarded.
-// Suppose the state machine decides to perform an action once a key is released.
-// Then once the action is performed, in theory, the action will never be undone because
-// next time the key is pressed a new state machine will be created
-// i guess that's one scenarion in which the state machine can lead to a weird state
-//
-// TODO another detail i need to take care of is how the state machine will interact when two stateful
-// keys are pressed.
-// say key 1 and 2 are stateful
-// what happens if i'm handling the stateM for key 1 and then key 2 is pressed?

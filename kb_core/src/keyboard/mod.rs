@@ -3,8 +3,8 @@
 /// The logical keyboard interface was drawn out considering 
 /// types which match an USB HID keyboard, that is, key scan codes are 1 byte.
 
-//mod r#impl;
-//mod state_machines;
+mod r#impl;
+mod state_machines;
 pub mod echoer;
 
 /// Set of events that a keyboard respond to. (inputs)
@@ -17,10 +17,11 @@ pub enum Event<Id> {
 
 impl<Id> Event<Id> {
     pub fn is_key_press(&self) -> bool {
-        match self {
-            Event::KeyPress(_) => true,
-            _ => false
-        }
+        matches!(self, Event::KeyPress(_))
+    }
+
+    pub fn is_key_release(&self) -> bool {
+        matches!(self, Event::KeyRelease(_))
     }
 
     pub fn get_key_id(&self) -> Option<&Id> {
@@ -31,6 +32,7 @@ impl<Id> Event<Id> {
         }
     }
 }
+
 
 /// Set of actions a keyboard perform as consequence of inputs. (outputs)
 #[derive(Debug, Clone, PartialEq)]
@@ -49,7 +51,7 @@ pub enum Action<T> {
 /// It can be thought of as a state machine, each time it receives an input
 /// it goes to a different state and produces an output
 pub trait Keyboard<KeyId, T> {
-    fn transition<'a>(&mut self, event: Event<KeyId>) -> Vec<Action<T>>;
+    fn transition(&mut self, event: Event<KeyId>) -> Vec<Action<T>>;
 }
 
 /// Wraps a keyboard into a keyboard that can receive multiple
