@@ -11,16 +11,27 @@ pub type LayerId = u8;
 /// `NoOp`: does nothing
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum KeyAction<T> {
-    AddKey(T),
-    SetLayer(LayerId),
+    SendKey(T),
+    StopKey(T),
+    PushLayer(LayerId),
+    PopLayer(LayerId),
     NoOp,
+    ToggleKey(T),
+    ToggleLayer(LayerId),
+}
 
-    // Some actions were mapped as being useful, however they are a bit
-    // of an edge case. As such, they won't be implemented in this iteration.
-    //
-    // ToggleKey,
-    // ToggleLayer,
-    // RemoveKey, // removes key from set of active keys
+impl<T: Copy> KeyAction<T> {
+    pub fn invert(&self) -> Self {
+        match self {
+            Self::SendKey(key_id) => Self::StopKey(*key_id),
+            Self::StopKey(key_id) => Self::SendKey(*key_id),
+            Self::PushLayer(layer_id) => Self::PopLayer(*layer_id),
+            Self::PopLayer(layer_id) => Self::PushLayer(*layer_id),
+            Self::NoOp => Self::NoOp,
+            Self::ToggleKey(key_id) => Self::ToggleKey(*key_id),
+            Self::ToggleLayer(layer_id) => Self::ToggleLayer(*layer_id),
+        }
+    }
 }
 
 impl<T> Default for KeyAction<T> {
@@ -40,7 +51,7 @@ pub enum KeyActionSet<T> {
 }
 
 impl<T: Copy> KeyActionSet<T> {
-    fn get_actions(&self) -> Vec<KeyAction<T>> {
+    pub fn get_actions(&self) -> Vec<KeyAction<T>> {
         let mut actions = Vec::new();
 
         match self {
@@ -58,6 +69,14 @@ impl<T: Copy> KeyActionSet<T> {
             },
         }
         actions
+    }
+
+    pub fn invert(&self) -> KeyActionSet<T> {
+        match self {
+            KeyActionSet::Single(a1) => KeyActionSet::Single(a1.invert()),
+            KeyActionSet::Double(a1, a2) =>  KeyActionSet::Double(a1.invert(), a2.invert()),
+            KeyActionSet::Triple(a1, a2, a3) => KeyActionSet::Triple(a1.invert(), a2.invert(), a3.invert()),
+        }
     }
 }
 
