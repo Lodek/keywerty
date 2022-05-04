@@ -1,8 +1,9 @@
 /// Keyboard trait implementation using state machines
 
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::time::Duration;
 use std::fmt::Debug;
+use std::hash::Hash;
 
 use crate::keyboard::state_machines as sm;
 use crate::keyboard::state_machines::KSMInit;
@@ -47,14 +48,14 @@ pub struct SMKeyboard<KeyId, T, Mapper> {
     default_layer: keys::LayerId,
     layer_mapper: Mapper,
     layer_stack: Vec<keys::LayerId>,
-    active_key_actions: BTreeMap<KeyId, keys::KeyActionSet<T>>,
-    state_machines: BTreeMap<KeyId, Box<dyn KeyStateMachine<KeyId, T>>>,
+    active_key_actions: HashMap<KeyId, keys::KeyActionSet<T>>,
+    state_machines: HashMap<KeyId, Box<dyn KeyStateMachine<KeyId, T>>>,
     settings: SMKeyboardSettings,
 }
 
 
 impl<KeyId, T, Mapper> SMKeyboard<KeyId, T, Mapper> 
-where KeyId: Copy + PartialEq + Ord + Debug + 'static,
+where KeyId: Copy + Eq + Hash + Debug + 'static,
       T: Copy + 'static,
       Mapper: LayerMapper<KeyId, T>
 {
@@ -63,8 +64,8 @@ where KeyId: Copy + PartialEq + Ord + Debug + 'static,
             settings,
             default_layer,
             layer_mapper: layer_mapper,
-            state_machines: BTreeMap::new(),
-            active_key_actions: BTreeMap::new(),
+            state_machines: HashMap::new(),
+            active_key_actions: HashMap::new(),
             layer_stack: Vec::new(),
         }
     }
@@ -192,7 +193,7 @@ where KeyId: Copy + PartialEq + Ord + Debug + 'static,
 
 
 impl<KeyId, T, Mapper> Keyboard<KeyId, T> for SMKeyboard<KeyId, T, Mapper>
-where KeyId: Ord + Copy + PartialEq + Debug + 'static,
+where KeyId: Hash + Copy + Eq + Debug + 'static,
       T: Copy + 'static,
       Mapper: LayerMapper<KeyId, T>
 {

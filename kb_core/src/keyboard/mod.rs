@@ -3,7 +3,7 @@
 /// The logical keyboard interface was drawn out considering 
 /// types which match an USB HID keyboard, that is, key scan codes are 1 byte.
 
-mod r#impl;
+pub mod r#impl;
 mod state_machines;
 pub mod echoer;
 
