@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::keyboard::state_machines::KeyStateMachine;
 use crate::keyboard::state_machines::KSMInit;
 use crate::keyboard::state_machines::KSMHelper;
@@ -6,6 +8,7 @@ use crate::keys::TapKeyConf;
 use crate::keys::KeyActionSet;
 
 
+#[derive(Debug)]
 pub struct TapKSM<KeyId, T> {
     initialized: bool,
     accepting: bool,
@@ -40,7 +43,7 @@ impl<KeyId, T> KSMInit<KeyId> for TapKSM<KeyId, T>
 }
 
 impl<KeyId, T> KeyStateMachine<KeyId, T> for TapKSM<KeyId, T> 
-where KeyId: PartialEq,
+where KeyId: PartialEq + Debug,
       T: Clone
 {
 
@@ -49,6 +52,8 @@ where KeyId: PartialEq,
             None
         }
         else if matches!(event, Event::KeyPress(key_id) if key_id == self.get_watched_key().unwrap()) {
+            // TODO debug log
+            eprintln!("tap event for event: {:?}", event);
             self.accepting = true;
             Some(self.conf.tap.clone())
         }

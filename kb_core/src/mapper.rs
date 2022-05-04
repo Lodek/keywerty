@@ -33,7 +33,7 @@ impl LayerMapper<u8, u8> for SimpleMapper {
     }
 }
 
-pub struct MapOrEchoMapper<KeyId>(HashMap<(LayerId, KeyId), KeyConf<KeyId>>);
+pub struct MapOrEchoMapper<KeyId>(pub HashMap<(LayerId, KeyId), KeyConf<KeyId>>);
 
 impl<KeyId> LayerMapper<KeyId, KeyId> for MapOrEchoMapper<KeyId> 
 where KeyId: Copy + Eq + Hash

@@ -32,7 +32,7 @@ pub struct SMKeyboardSettings {
 impl Default for SMKeyboardSettings {
     fn default() -> Self {
         SMKeyboardSettings {
-            hold_ksm_delay: Duration::from_millis(100),
+            hold_ksm_delay: Duration::from_millis(1000),
 
             dtksm_retap_delay: Duration::from_millis(100),
             dtksm_hold_delay: Duration::from_millis(100),
@@ -138,7 +138,7 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
     /// otherwise, it will return the inverted action that was applied for that key.
     fn handle_key_release_event(&mut self, event: &Event<KeyId>) -> Option<PendingKeyAction<KeyId, T>> {
         // defensive programming in case of api missuse
-        if matches!(event, Event::KeyRelease(_)) {
+        if !matches!(event, Event::KeyRelease(_)) {
             return None;
         }
 
@@ -186,6 +186,7 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
             .collect::<Vec<_>>();
 
         for key_id in finished_machines.into_iter() {
+            eprintln!("dropped state machine for key: {:?}", key_id);
             self.state_machines.remove(&key_id);
         }
     }
@@ -194,11 +195,12 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
 
 impl<KeyId, T, Mapper> Keyboard<KeyId, T> for SMKeyboard<KeyId, T, Mapper>
 where KeyId: Hash + Copy + Eq + Debug + 'static,
-      T: Copy + 'static,
+      T: Copy + 'static + Debug,
       Mapper: LayerMapper<KeyId, T>
 {
     fn transition(&mut self, event: Event<KeyId>) -> Vec<Action<T>> {
 
+        eprintln!("handling event: {:?}", event);
         let mut actions = Vec::new();
         let mut pending_action_q = Vec::with_capacity(10);
 
@@ -231,6 +233,8 @@ where KeyId: Hash + Copy + Eq + Debug + 'static,
             }
         }
 
+        eprintln!("active actions : {:?}", self.active_key_actions);
+        eprintln!("state machine count: {:?}", self.state_machines.len());
         self.drop_finished_machines();
 
         actions

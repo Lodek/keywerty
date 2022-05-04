@@ -77,6 +77,6 @@ impl<KSM, KeyId, T> KSMHelper<KeyId, T> for KSM
 where KSM: KeyStateMachine<KeyId, T> + KSMInit<KeyId>,
 {
     fn can_transition(self: &KSM) -> bool {
-        self.is_finished() && self.is_initialized()
+        self.is_initialized() && !self.is_finished()
     }
 }
