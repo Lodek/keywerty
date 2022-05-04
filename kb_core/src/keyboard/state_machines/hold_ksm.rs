@@ -1,12 +1,15 @@
 /// Module for Key State Machine implementation for the `Hold` key configuration
 use std::time::{Instant, Duration};
 
+use crate::keys::KeyActionSet;
+use crate::keys::HoldKeyConf;
 use crate::keyboard::Event;
-use crate::keys::{KeyActionSet, HoldKeyConf};
-use super::{KeyStateMachine, KSMInit};
+use super::KeyStateMachine;
+use super::KSMHelper;
+use super::KSMInit;
 
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum State {
     Waiting,
     Hold,
@@ -15,7 +18,7 @@ enum State {
 
 #[derive(Debug)]
 pub struct HoldKSM<KeyId, T> {
-    watched_key: KeyId,
+    watched_key: Option<KeyId>,
     state: State,
     key_conf: HoldKeyConf<T>,
     creation: Instant,
@@ -23,57 +26,72 @@ pub struct HoldKSM<KeyId, T> {
     initialized: bool,
 }
 
-impl<KeyId, T: Copy> HoldKSM<KeyId, T> {
+impl<KeyId, T> HoldKSM<KeyId, T> {
     pub fn new(release_delay: Duration) -> Self {
         return Self {
             creation: Instant::now(),
             release_delay,
             state: State::Waiting,
             key_conf: HoldKeyConf::default(),
-            watched_key: KeyId::default(),
+            watched_key: None,
             initialized: false,
         }
     }
 }
 
-impl<KeyId, T: Copy> KeyStateMachine<KeyId, T> for HoldKSM<KeyId, T> {
+impl<KeyId, T> KeyStateMachine<KeyId, T> for HoldKSM<KeyId, T> 
+where KeyId: PartialEq,
+      T: Clone
+{
 
-    fn get_watched_key(&self) -> KeyId {
-        self.watched_key
+    fn get_watched_key(&self) -> Option<&KeyId> {
+        self.watched_key.as_ref()
+    }
+    
+    fn is_finished(&self) -> bool {
+        !matches!(self.state, State::Waiting)
     }
 
-    fn transition<'a>(&mut self, event: Event<KeyId>) -> Option<KeyActionSet<T>> {
+    fn transition(&mut self, event: &Event<KeyId>) -> Option<KeyActionSet<T>> {
+        if !self.can_transition() {
+            return None;
+        }
+
+        let watched_key = self.get_watched_key().unwrap();
 
         if let State::Waiting = self.state {
             if (Instant::now() - self.creation) > self.release_delay {
                 self.state = State::Hold;
             }
-
-            else if event == Event::KeyRelease(self.watched_key) {
+            else if matches!(event, Event::KeyRelease(key_id) if key_id == watched_key) {
                 self.state = State::Tap;
             }
-
-            else if event.is_key_press() {
+            else if matches!(event, Event::KeyPress(_)) {
                 self.state = State::Hold;
             }
         }
 
         match self.state {
             State::Waiting => None,
-            State::Tap => Some(self.key_conf.tap),
-            State::Hold => Some(self.key_conf.hold)
+            State::Tap => Some(self.key_conf.tap.clone()),
+            State::Hold => Some(self.key_conf.hold.clone())
         }
     }
 }
 
-impl<KeyId, T: Copy> KSMInit<KeyId, T> for HoldKSM<KeyId, T> {
+impl<KeyId, T> KSMInit<KeyId> for HoldKSM<KeyId, T> 
+{
     type KeyConf = HoldKeyConf<T>;
 
     fn init_machine(&mut self, key_id: KeyId, key_conf: HoldKeyConf<T>) {
-        self.watched_key = key_id;
+        self.watched_key = Some(key_id);
         self.key_conf = key_conf;
         self.initialized = true;
         self.creation = Instant::now();
+    }
+
+    fn is_initialized(&self) -> bool {
+        self.initialized
     }
 }
 
