@@ -32,3 +32,14 @@ impl LayerMapper<u8, u8> for SimpleMapper {
         Some(KeyConf::Tap(TapKeyConf {tap: KeyActionSet::Single(key_action)}))
     }
 }
+
+pub struct MapOrEchoMapper<KeyId>(HashMap<(LayerId, KeyId), KeyConf<KeyId>>);
+
+impl<KeyId> LayerMapper<KeyId, KeyId> for MapOrEchoMapper<KeyId> 
+where KeyId: Copy + Eq + Hash
+{
+    fn get_conf(&self, layer: &LayerId, key: &KeyId) -> Option<KeyConf<KeyId>> {
+        let supplier = |key: KeyId| KeyConf::Tap( TapKeyConf { tap: KeyActionSet::Single(KeyAction::SendKey(key)) });
+        self.0.get(&(*layer, *key)).map(|v| *v).or(Some(supplier(*key)))
+    }
+}
