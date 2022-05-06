@@ -55,6 +55,41 @@ fn build_mapper() -> MapOrEchoMapper<EV_KEY> {
         })
     );
 
+    map.insert((0, EV_KEY::KEY_LEFTCTRL),
+        keys::KeyConf::Tap(
+            keys::TapKeyConf { 
+                tap: keys::KeyActionSet::Single(keys::KeyAction::PushLayer(1)),
+        })
+    );
+
+    map.insert((1, EV_KEY::KEY_J),
+        keys::KeyConf::Tap(
+            keys::TapKeyConf { 
+                tap: keys::KeyActionSet::Single(keys::KeyAction::SendKey(EV_KEY::KEY_DOWN)),
+        })
+    );
+
+    map.insert((1, EV_KEY::KEY_K),
+        keys::KeyConf::Tap(
+            keys::TapKeyConf { 
+                tap: keys::KeyActionSet::Single(keys::KeyAction::SendKey(EV_KEY::KEY_UP)),
+        })
+    );
+
+    map.insert((1, EV_KEY::KEY_L),
+        keys::KeyConf::Tap(
+            keys::TapKeyConf { 
+                tap: keys::KeyActionSet::Single(keys::KeyAction::SendKey(EV_KEY::KEY_RIGHT)),
+        })
+    );
+
+    map.insert((1, EV_KEY::KEY_H),
+        keys::KeyConf::Tap(
+            keys::TapKeyConf { 
+                tap: keys::KeyActionSet::Single(keys::KeyAction::SendKey(EV_KEY::KEY_LEFT)),
+        })
+    );
+
     MapOrEchoMapper(map)
 }
 
