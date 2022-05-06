@@ -47,36 +47,9 @@ pub trait KeyStateMachine<KeyId, T> {
     fn transition<'a>(&mut self, event: &Event<KeyId>) -> Option<KeyActionSet<T>>;
 
     /// Return the key for which the KSM is reponsible.
-    fn get_watched_key(&self) -> Option<&KeyId>;
+    fn get_watched_key(&self) -> &KeyId;
 
     /// Check whether the machine's current state is one of its accepting states.
     /// A state machine in an accepting state is finished and can be discarded
     fn is_finished(&self) -> bool;
-}
-
-pub trait KSMInit<KeyId> {
-    type KeyConf;
-
-    /// Initialize a State Machine instance.
-    /// key_id indicates the key to which the state machine is attached.
-    /// key_conf is the set of actions the key shall perform
-    fn init_machine(&mut self, key_id: KeyId, key_conf: Self::KeyConf);
-
-    /// Query whether machine has been previously initialized
-    fn is_initialized(&self) -> bool;
-}
-
-/// Helper methods usable by all `KeyStateMachine` instances
-pub trait KSMHelper<KeyId, T> {
-    fn can_transition(&self) -> bool;
-}
-
-/// Blanket implementation for all types that implement 
-/// KSMInit and KeyStateMachine
-impl<KSM, KeyId, T> KSMHelper<KeyId, T> for KSM
-where KSM: KeyStateMachine<KeyId, T> + KSMInit<KeyId>,
-{
-    fn can_transition(self: &KSM) -> bool {
-        self.is_initialized() && !self.is_finished()
-    }
 }

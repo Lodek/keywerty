@@ -5,36 +5,34 @@ use crate::keys::KeyActionSet;
 use crate::keys::HoldKeyConf;
 use crate::keyboard::Event;
 use super::KeyStateMachine;
-use super::KSMHelper;
-use super::KSMInit;
 
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum State {
+    Created,
     Waiting,
     Hold,
-    Tap
+    Released,
+    Finished,
 }
 
 #[derive(Debug)]
 pub struct HoldKSM<KeyId, T> {
-    watched_key: Option<KeyId>,
+    watched_key: KeyId,
     state: State,
     key_conf: HoldKeyConf<T>,
-    creation: Instant,
+    timer_start: Instant,
     release_delay: Duration,
-    initialized: bool,
 }
 
 impl<KeyId, T> HoldKSM<KeyId, T> {
-    pub fn new(release_delay: Duration) -> Self {
+    pub fn new(release_delay: Duration, watched_key: KeyId, conf: HoldKeyConf<T>) -> Self {
         return Self {
-            creation: Instant::now(),
             release_delay,
-            state: State::Waiting,
-            key_conf: HoldKeyConf::default(),
-            watched_key: None,
-            initialized: false,
+            watched_key,
+            timer_start: Instant::now(),
+            state: State::Created,
+            key_conf: conf,
         }
     }
 }
@@ -44,131 +42,158 @@ where KeyId: PartialEq,
       T: Clone
 {
 
-    fn get_watched_key(&self) -> Option<&KeyId> {
-        self.watched_key.as_ref()
+    fn get_watched_key(&self) -> &KeyId {
+        &self.watched_key
     }
     
     fn is_finished(&self) -> bool {
-        !matches!(self.state, State::Waiting)
+        matches!(self.state, State::Finished)
     }
 
     fn transition(&mut self, event: &Event<KeyId>) -> Option<KeyActionSet<T>> {
-        if !self.can_transition() {
+        if self.is_finished() {
             return None;
         }
 
-        let watched_key = self.get_watched_key().unwrap();
+        let watched_key = self.get_watched_key();
 
-        if let State::Waiting = self.state {
-            if (Instant::now() - self.creation) > self.release_delay {
-                self.state = State::Hold;
-            }
-            else if matches!(event, Event::KeyRelease(key_id) if key_id == watched_key) {
-                self.state = State::Tap;
-            }
-            else if matches!(event, Event::KeyPress(_)) {
-                self.state = State::Hold;
-            }
-        }
-
+        // TODO define macros / functions to make conditions
+        // more legible
         match self.state {
-            State::Waiting => None,
-            State::Tap => Some(self.key_conf.tap.clone()),
-            State::Hold => Some(self.key_conf.hold.clone())
+            State::Created => {
+                if matches!(event, Event::KeyPress(key_id) if key_id == watched_key) {
+                    self.timer_start = Instant::now();
+                    self.state = State::Waiting;
+                }
+                None
+            },
+            State::Waiting => {
+                // pressed till timeout or other key was pressed
+                // hold
+                if (Instant::now() - self.timer_start) > self.release_delay || 
+                    matches!(event, Event::KeyPress(key_id) if key_id != watched_key)
+                {
+                    self.state = State::Hold;
+                    Some(self.key_conf.hold.clone())
+                }
+                // key released before timer means tap
+                else if matches!(event, Event::KeyRelease(key_id) if key_id == watched_key) {
+                    self.state = State::Released;
+                    Some(self.key_conf.tap.clone())
+                }
+                else {
+                    None
+                }
+            },
+            State::Released => {
+                // after released, go to finished
+                self.state = State::Finished;
+                None
+            },
+            State::Hold => {
+                // if key was held, wait until its released
+                if matches!(event, Event::KeyRelease(key_id) if key_id == watched_key) {
+                    self.state = State::Finished;
+                }
+                None
+            },
+            State::Finished => None,
         }
     }
 }
 
-impl<KeyId, T> KSMInit<KeyId> for HoldKSM<KeyId, T> 
-{
-    type KeyConf = HoldKeyConf<T>;
 
-    fn init_machine(&mut self, key_id: KeyId, key_conf: HoldKeyConf<T>) {
-        self.watched_key = Some(key_id);
-        self.key_conf = key_conf;
-        self.initialized = true;
-        self.creation = Instant::now();
-    }
-
-    fn is_initialized(&self) -> bool {
-        self.initialized
-    }
-}
-
-/*
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::time::Duration;
     use std::thread::sleep;
+    use crate::keys::KeyAction;
 
-    #[test]
-    fn test_kms_hold_till_timeout() {
-        // Given Hold state machine watching key 10
-        // And key conf for key 43 on tap and 42 on hold
-        let tap_key_code = 43;
-        let watched_key = 10;
-        let hold_key_code = 42;
-        let timeout = Duration::from_nanos(1);
-        let tap_action = KeyActionSet::Single(KeyAction::AddKey(tap_key_code));
-        let hold_action = KeyActionSet::Single(KeyAction::AddKey(hold_key_code));
-        let conf = HoldKeyConf(tap_action, hold_action);
-        let mut machine = HoldKSM::new(timeout);
-        machine.init_machine(watched_key, conf);
+    const watched_key: u8 = 1;
+    const tap_key_code: u8 = 10;
+    const hold_key_code: u8 = 20;
 
-        // Given key is held for longer than timeout
-        sleep(timeout);
-
-        // When machine is transitioned 
-        let actionset_opt = machine.transition(&vec![]);
-
-        // Then Optional contains actionset
-        // And action returned hold key code
-        assert_eq!(actionset_opt.unwrap(), KeyActionSet::Single(KeyAction::AddKey(hold_key_code)));
-    }
-
-    #[test]
-    fn test_kms_other_key_press() {
-        // Given Hold state machine watching key 10
-        // And key conf for key 43 on tap and 42 on hold
-        let watched_key = 10;
-        let tap_key_code = 43;
-        let hold_key_code = 42;
+    fn build_ksm() -> HoldKSM<u8, u8> {
         let timeout = Duration::from_millis(1);
-        let tap_action = KeyActionSet::Single(KeyAction::AddKey(tap_key_code));
-        let hold_action = KeyActionSet::Single(KeyAction::AddKey(hold_key_code));
-        let conf = HoldKeyConf(tap_action, hold_action);
+        let tap_action = KeyActionSet::Single(KeyAction::SendKey(tap_key_code));
+        let hold_action = KeyActionSet::Single(KeyAction::SendKey(hold_key_code));
+        let conf = HoldKeyConf { tap: tap_action, hold: hold_action };
         let mut machine = HoldKSM::new(timeout);
         machine.init_machine(watched_key, conf);
-
-        // When machine is transitioned 
-        let actionset_opt = machine.transition(&vec![Event::KeyPress(222)]);
-
-        // Then Optional contains actionset
-        // And action returned hold key code
-        assert_eq!(actionset_opt.unwrap(), KeyActionSet::Single(KeyAction::AddKey(hold_key_code)));
+        machine
     }
 
     #[test]
-    fn test_kms_release() {
-        // Given Hold state machine watching key 10
-        // And key conf for key 43 on tap and 42 on hold
-        let watched_key = 10;
-        let tap_key_code = 43;
-        let hold_key_code = 42;
-        let timeout = Duration::from_millis(1);
-        let tap_action = KeyActionSet::Single(KeyAction::AddKey(tap_key_code));
-        let hold_action = KeyActionSet::Single(KeyAction::AddKey(hold_key_code));
-        let conf = HoldKeyConf(tap_action, hold_action);
-        let mut machine = HoldKSM::new(timeout);
-        machine.init_machine(watched_key, conf);
+    fn test_key_timeout_with_hold_kms() {
+        let mut machine = build_ksm();
 
-        // When the watched key is released
-        let actionset_opt = machine.transition(&vec![Event::KeyRelease(watched_key)]);
+        // When I transition machine by sending key press event
+        let opt = machine.transition(&Event::KeyPress(watched_key));
+        assert!(opt.is_none());
+        assert!(!machine.is_finished());
 
-        // Then Optional contains actionset
-        // And action returned hold key code
-        assert_eq!(actionset_opt.unwrap(), KeyActionSet::Single(KeyAction::AddKey(tap_key_code)));
+        // When I sleep for timeout
+        // And machine is polled 
+        sleep(Duration::from_millis(10));
+        let opt = machine.transition(&Event::Poll);
+        assert_eq!(opt.unwrap(), KeyActionSet::Single(KeyAction::SendKey(hold_key_code)));
+        assert!(!machine.is_finished());
+
+        // when machine is polled 
+        let opt = machine.transition(&Event::Poll);
+        assert!(opt.is_none());
+        assert!(!machine.is_finished());
+
+        // when machine key is released
+        let opt = machine.transition(&Event::KeyRelease(watched_key));
+        assert!(opt.is_none());
+        assert!(machine.is_finished());
     }
+
+    #[test]
+    fn test_pressing_other_key_with_hold_kms_means_key_was_held() {
+        let mut machine = build_ksm();
+
+        // When I start machine by sending key press event
+        let opt = machine.transition(&Event::KeyPress(watched_key));
+        assert!(opt.is_none());
+        assert!(!machine.is_finished());
+
+        // When another key is pressed
+        let opt = machine.transition(&Event::KeyPress(255));
+        assert_eq!(opt.unwrap(), KeyActionSet::Single(KeyAction::SendKey(hold_key_code)));
+        assert!(!machine.is_finished());
+
+        // when machine is polled 
+        let opt = machine.transition(&Event::Poll);
+        assert!(opt.is_none());
+        assert!(!machine.is_finished());
+
+        // when machine key is released
+        let opt = machine.transition(&Event::KeyRelease(watched_key));
+        assert!(opt.is_none());
+        assert!(machine.is_finished());
+    }
+
+    #[test]
+    fn test_releasing_watched_key_before_timeout_sends_tap() {
+        let mut machine = build_ksm();
+
+        // When I start machine by sending key press event
+        let opt = machine.transition(&Event::KeyPress(watched_key));
+        assert!(opt.is_none());
+        assert!(!machine.is_finished());
+
+        // When I release the watched key
+        let opt = machine.transition(&Event::KeyRelease(watched_key));
+        assert_eq!(opt.unwrap(), KeyActionSet::Single(KeyAction::SendKey(tap_key_code)));
+        assert!(!machine.is_finished());
+
+        // when machine is polled 
+        let opt = machine.transition(&Event::Poll);
+        assert!(opt.is_none());
+        assert!(machine.is_finished());
+    }
+
 }
-*/
