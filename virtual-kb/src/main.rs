@@ -50,7 +50,7 @@ fn build_mapper() -> MapOrEchoMapper<EV_KEY> {
     map.insert((0, EV_KEY::KEY_CAPSLOCK),
         keys::KeyConf::Hold(
             keys::HoldKeyConf { 
-                tap: keys::KeyActionSet::Single(keys::KeyAction::SendKey(EV_KEY::KEY_CAPSLOCK)),
+                tap: keys::KeyActionSet::Single(keys::KeyAction::SendKey(EV_KEY::KEY_ESC)),
                 hold: keys::KeyActionSet::Single(keys::KeyAction::SendKey(EV_KEY::KEY_LEFTCTRL)),
         })
     );

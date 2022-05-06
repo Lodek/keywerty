@@ -85,16 +85,19 @@ impl Runtime {
 
     pub fn run(&mut self) {
         loop {
-            let mut poll = false;
             {
                 let mut ready_iter = self.epoll.wait().unwrap();
-                poll = matches!(ready_iter.next(), None);
             }
-            self.emit_events(poll);
+            self.emit_events();
         }
     }
 
-    fn emit_events(&mut self, poll: bool) {
+    fn emit_events(&mut self) {
+        // always poll first because there might be element in the device
+        // file but the iterator has no relevant events for the keyboard
+        let actions = self.keyboard.transition(Event::Poll);
+        self.virtual_dev.emit_events(&actions).unwrap();
+
         for event in &mut self.emitter {
             let actions = self.keyboard.transition(event);
             self.virtual_dev.emit_events(&actions).unwrap();

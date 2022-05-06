@@ -32,6 +32,18 @@ impl EventIter {
 
     pub fn new(file: File) -> io::Result<Self> {
         let device = Device::new_from_file(file)?;
+        
+        // FIXME grab that from the linux header. figure out how to do that through rust
+        let EVIOCGRAB = 1074021776;
+
+        unsafe {
+            let fd = device.file().as_raw_fd();
+            let rv = libc::ioctl(fd, EVIOCGRAB, 1);
+            if rv == -1 {
+                return Err(io::Error::last_os_error());
+            }
+        }
+
         Ok(Self {
            device,
            events: Vec::new()
