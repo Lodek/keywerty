@@ -70,7 +70,7 @@ where KeyId: PartialEq,
             State::Waiting => {
                 // pressed till timeout or other key was pressed
                 // hold
-                if (Instant::now() - self.timer_start) > self.release_delay || 
+                if (Instant::now() - self.timer_start) >= self.release_delay || 
                     matches!(event, Event::KeyPress(key_id) if key_id != watched_key)
                 {
                     self.state = State::Hold;
@@ -115,12 +115,11 @@ mod tests {
     const hold_key_code: u8 = 20;
 
     fn build_ksm() -> HoldKSM<u8, u8> {
-        let timeout = Duration::from_millis(1);
+        let timeout = Duration::from_millis(2);
         let tap_action = KeyActionSet::Single(KeyAction::SendKey(tap_key_code));
         let hold_action = KeyActionSet::Single(KeyAction::SendKey(hold_key_code));
         let conf = HoldKeyConf { tap: tap_action, hold: hold_action };
-        let mut machine = HoldKSM::new(timeout);
-        machine.init_machine(watched_key, conf);
+        let mut machine = HoldKSM::new(timeout, watched_key, conf);
         machine
     }
 
@@ -135,7 +134,15 @@ mod tests {
 
         // When I sleep for timeout
         // And machine is polled 
-        sleep(Duration::from_millis(10));
+        for i in [0..2] {
+            sleep(Duration::from_nanos(500));
+            let opt = machine.transition(&Event::Poll);
+            assert!(opt.is_none());
+            assert!(!machine.is_finished());
+        }
+
+        // when i poll after timeout
+        sleep(Duration::from_millis(2));
         let opt = machine.transition(&Event::Poll);
         assert_eq!(opt.unwrap(), KeyActionSet::Single(KeyAction::SendKey(hold_key_code)));
         assert!(!machine.is_finished());

@@ -31,7 +31,7 @@ pub struct SMKeyboardSettings {
 impl Default for SMKeyboardSettings {
     fn default() -> Self {
         SMKeyboardSettings {
-            hold_ksm_delay: Duration::from_secs(2),
+            hold_ksm_delay: Duration::from_millis(750),
 
             dtksm_retap_delay: Duration::from_millis(100),
             dtksm_hold_delay: Duration::from_millis(100),
@@ -181,6 +181,7 @@ where KeyId: Hash + Copy + Eq + Debug + 'static,
         // map state machine steps into pending key actions
         for (key_id, machine) in self.state_machines.iter_mut() {
             if let Some(key_actions) = machine.transition(&event) {
+                eprintln!("transition actions: key_id={:?} actionset={:?}", key_id, key_actions);
                 self.active_key_actions.insert(*key_id, key_actions.clone());
                 pending_action_q.push((*key_id, key_actions));
             }
