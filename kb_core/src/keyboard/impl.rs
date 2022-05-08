@@ -49,6 +49,7 @@ pub struct SMKeyboard<KeyId, T, Mapper> {
     layer_stack: Vec<keys::LayerId>,
     active_key_actions: HashMap<KeyId, keys::KeyActionSet<T>>,
     state_machines: HashMap<KeyId, Box<dyn KeyStateMachine<KeyId, T>>>,
+    state_machine_order: Vec<KeyId>,
     settings: SMKeyboardSettings,
 }
 
@@ -66,6 +67,7 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
             state_machines: HashMap::new(),
             active_key_actions: HashMap::new(),
             layer_stack: Vec::new(),
+            state_machine_order: Vec::new(),
         }
     }
 
@@ -126,6 +128,7 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
         else if let Some(conf) = self.layer_mapper.get_conf(&self.get_active_layer(), key_id) {
             let machine = self.build_machine(key_id, conf);
             self.state_machines.insert(*key_id, machine);
+            self.state_machine_order.push(*key_id);
         }
         else {
             // TODO use error log
@@ -155,6 +158,10 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
             .map(|(key_id, _)| *key_id)
             .collect::<Vec<_>>();
 
+        let is_not_finished = |key_id: &KeyId| !finished_machines.contains(key_id);
+
+        self.state_machine_order.retain(is_not_finished);
+
         for key_id in finished_machines.into_iter() {
             eprintln!("dropped state machine for key: {:?}", key_id);
             self.state_machines.remove(&key_id);
@@ -179,7 +186,8 @@ where KeyId: Hash + Copy + Eq + Debug + 'static,
         }
 
         // map state machine steps into pending key actions
-        for (key_id, machine) in self.state_machines.iter_mut() {
+        for key_id in self.state_machine_order.iter() {
+            let machine = self.state_machines.get_mut(key_id).unwrap();
             if let Some(key_actions) = machine.transition(&event) {
                 eprintln!("transition actions: key_id={:?} actionset={:?}", key_id, key_actions);
                 self.active_key_actions.insert(*key_id, key_actions.clone());
