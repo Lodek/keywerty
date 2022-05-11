@@ -86,7 +86,10 @@ impl Runtime {
     pub fn run(&mut self) {
         loop {
             {
-                let mut ready_iter = self.epoll.wait().unwrap();
+                if let Err(err) = self.epoll.wait() {
+                    eprintln!("epoll error'd during runtime: {}", err);
+                    continue;
+                }
             }
             self.emit_events();
         }
