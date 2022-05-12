@@ -1,7 +1,7 @@
-use virtual_kb::Runtime;
-use virtual_kb::Error;
-use virtual_kb::monitor::EventIter;
-use virtual_kb::virtual_dev::UInputKeyboard;
+use vkwrty::Runtime;
+use vkwrty::Error;
+use vkwrty::monitor::EventIter;
+use vkwrty::virtual_dev::UInputKeyboard;
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -9,12 +9,12 @@ use std::fs;
 use std::ffi::CString;
 use std::os::unix::io::FromRawFd;
 
-use kb_core::mapper::MapOrEchoMapper;
-use kb_core::keyboard::r#impl as sm_kb;
-use kb_core::keyboard::Action;
-use kb_core::keyboard::Event;
-use kb_core::keys;
-use kb_core::keyboard::Keyboard;
+use keywerty::mapper::MapOrEchoMapper;
+use keywerty::keyboard::r#impl as sm_kb;
+use keywerty::keyboard::Action;
+use keywerty::keyboard::Event;
+use keywerty::keys;
+use keywerty::keyboard::Keyboard;
 use clap::App;
 use clap::Arg;
 use evdev_rs::enums::EV_KEY;

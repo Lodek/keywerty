@@ -3,18 +3,18 @@ use std::fs;
 use std::ffi::CString;
 use std::os::unix::io::FromRawFd;
 
-use kb_core::keyboard::Action;
-use kb_core::keyboard::Event;
-use kb_core::keyboard::Keyboard;
-use kb_core::keyboard::echoer::EchoerKb;
+use keywerty::keyboard::Action;
+use keywerty::keyboard::Event;
+use keywerty::keyboard::Keyboard;
+use keywerty::keyboard::echoer::EchoerKb;
 use clap::Arg;
 use clap::App;
 use libc;
 
-use virtual_kb::Error;
-use virtual_kb::Runtime;
-use virtual_kb::virtual_dev::UInputKeyboard;
-use virtual_kb::monitor::EventIter;
+use vkwrty::Error;
+use vkwrty::Runtime;
+use vkwrty::virtual_dev::UInputKeyboard;
+use vkwrty::monitor::EventIter;
 
 fn main() {
     let matches = App::new("Virtual echoer Keyboard")

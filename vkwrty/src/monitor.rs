@@ -8,7 +8,7 @@ use evdev_rs::Device;
 use evdev_rs::InputEvent;
 use evdev_rs::enums::EventCode;
 use evdev_rs::enums::EV_KEY;
-use kb_core::keyboard::Event;
+use keywerty::keyboard::Event;
 
 
 /// Iterator that returns an Evdev event for a give device file.

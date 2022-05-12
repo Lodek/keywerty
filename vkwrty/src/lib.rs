@@ -10,9 +10,9 @@ use std::io::Error as IOError;
 use std::time::SystemTimeError;
 use std::error;
 
-use kb_core::keyboard::Event;
-use kb_core::keyboard::Action;
-use kb_core::keyboard::Keyboard;
+use keywerty::keyboard::Event;
+use keywerty::keyboard::Action;
+use keywerty::keyboard::Keyboard;
 use evdev_rs::enums::{EV_KEY};
 
 use monitor::EventIter;

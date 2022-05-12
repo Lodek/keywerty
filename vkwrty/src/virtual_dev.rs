@@ -6,7 +6,7 @@ use std::iter::once;
 
 use evdev_rs::{TimeVal, UInputDevice, InputEvent, UninitDevice, DeviceWrapper};
 use evdev_rs::enums::{EV_SYN, EV_KEY, EventType, EventCode, int_to_ev_key};
-use kb_core::keyboard::Action;
+use keywerty::keyboard::Action;
 
 use crate::Result;
 use crate::Error;

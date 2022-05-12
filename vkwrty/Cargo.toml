@@ -1,0 +1,11 @@
+[package]
+name = "vkwrty"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+evdev-rs = "0.5.0"
+num-traits = "0.2.4"
+libc = "0.2.124"
+keywerty = { path = "../keywerty", version = "0.1.0" }
+clap = "2.33.0"

@@ -25,4 +25,4 @@ One such usage is the "Virtual Keyqwerty" (vkwrty) project.
 ### Virtual Keywerty
 `vkwrty` is an user space application that implements a virtual keyboard.
 The idea is that vkwrt is going to intercept key events from ones physical keyboard, map them through the stateful `kwrty` machine and emitt new key events to the underlying OS.
-Check out [virtual-keywerty](./virtual-keywerty) for more information
+Check out [virtual-keywerty](./vkwrty) for more information
