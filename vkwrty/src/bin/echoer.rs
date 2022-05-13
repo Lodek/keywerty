@@ -6,7 +6,7 @@ use std::os::unix::io::FromRawFd;
 use keywerty::keyboard::Action;
 use keywerty::keyboard::Event;
 use keywerty::keyboard::Keyboard;
-use keywerty::keyboard::echoer::EchoerKb;
+use keywerty::keyboard::EchoerKb;
 use clap::Arg;
 use clap::App;
 use libc;

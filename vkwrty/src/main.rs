@@ -10,7 +10,8 @@ use std::ffi::CString;
 use std::os::unix::io::FromRawFd;
 
 use keywerty::mapper::MapOrEchoMapper;
-use keywerty::keyboard::r#impl as sm_kb;
+use keywerty::keyboard::SMKeyboard;
+use keywerty::keyboard::SMKeyboardSettings;
 use keywerty::keyboard::Action;
 use keywerty::keyboard::Event;
 use keywerty::keys;
@@ -35,9 +36,9 @@ fn main() {
 
     let virtual_dev = UInputKeyboard::new(&"Virtual keyboard").unwrap();
 
-    let settings = sm_kb::SMKeyboardSettings::default();
+    let settings = SMKeyboardSettings::default();
     let mapper = build_mapper();
-    let keyboard = sm_kb::SMKeyboard::new(0, mapper, settings);
+    let keyboard = SMKeyboard::new(0, mapper, settings);
 
     let mut runtime = Runtime::new(event_iter, virtual_dev, keyboard, Duration::from_millis(100)).unwrap();
     runtime.run()

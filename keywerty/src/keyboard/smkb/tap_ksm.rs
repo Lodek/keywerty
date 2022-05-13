@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::keyboard::state_machines::KeyStateMachine;
+use super::KeyStateMachine;
 use crate::keyboard::Event;
 use crate::keys::TapKeyConf;
 use crate::keys::KeyActionSet;

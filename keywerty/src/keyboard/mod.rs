@@ -3,9 +3,13 @@
 /// The logical keyboard interface was drawn out considering 
 /// types which match an USB HID keyboard, that is, key scan codes are 1 byte.
 
-pub mod r#impl;
-mod state_machines;
-pub mod echoer;
+mod smkb;
+mod echoer;
+
+pub use smkb::SMKeyboardSettings;
+pub use smkb::SMKeyboard;
+pub use echoer::EchoerKb;
+
 
 /// Set of events that a keyboard respond to. (inputs)
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -53,15 +57,3 @@ pub enum Action<T> {
 pub trait Keyboard<KeyId, T> {
     fn transition(&mut self, event: Event<KeyId>) -> Vec<Action<T>>;
 }
-
-/// Wraps a keyboard into a keyboard that can receive multiple
-/// events at once.
-/// Internally each event is processed in the order it was sent.
-pub trait MultiEventKeyboard<KeyId, T>: Keyboard<KeyId, T> {
-    
-    /// Sequentially Steps through all events informed and return
-    /// agreggated list of actions.
-    fn transition_events<'a>(&mut self, events: &[Event<KeyId>]) -> Vec<Action<T>>;
-}
-
-// TODO Add blanket implementation for MultiEvent<Id>Keyboard

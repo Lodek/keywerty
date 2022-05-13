@@ -12,3 +12,9 @@ TODO
 
 ## Concepts
 TODO
+
+# Todos
+- [ ] Try docrs
+- [ ] Write stronger requirements for state machine trait
+- [ ] write tests
+- [ ] refactor / finish other state machines
