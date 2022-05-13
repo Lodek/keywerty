@@ -14,6 +14,7 @@ TODO
 TODO
 
 # Todos
+- [ ] write about activation behaviors and data model
 - [ ] Try docrs
 - [ ] Write stronger requirements for state machine trait
 - [ ] write tests
