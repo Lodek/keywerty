@@ -46,6 +46,7 @@ Some useful links to about these Linux resources can be found in the references 
 
 
 ## Todos
+- [ ] Separate Mapper from vkwrty (maybe a shared object at first?) 
 - [ ] Document code
 - [ ] Write about envisioned code architecture
 - [ ] Define Configuration file syntax (DSL/Json/Yaml)
