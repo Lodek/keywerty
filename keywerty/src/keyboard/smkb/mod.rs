@@ -43,9 +43,12 @@ use hold_ksm::HoldKSM;
 /// it *should* have a finished state and once this state is finished
 /// the machine *should* be considered disposable.
 ///
-/// A machine *should* be initialized before being used
-/// and attempting to transition an uninitialized machine
-/// *must not* return any actions.
+/// State machines *must* implement cleanup logic which is called once a 
+/// machine is finished. The cleanup logic in most cases (but not always)
+/// will undo the actions performed by the state machine.
+/// It's up to each machine to properly undo the actions it perform, however
+/// it must be noted that since machines mutate the state of the main keyboard
+/// attention is required to not generate unexpected behaviors.
 pub trait KeyStateMachine<KeyId, T> {
 
     /// Steps the state machine from the current events
@@ -60,6 +63,10 @@ pub trait KeyStateMachine<KeyId, T> {
     /// Check whether the machine's current state is one of its accepting states.
     /// A state machine in an accepting state is finished and can be discarded
     fn is_finished(&self) -> bool;
+
+    /// Fetch actions that should performed to cleanup the state machine.
+    /// Cleanup is done after a machine is finished and before it is disposed.
+    fn get_cleanup_actions(&self) -> &[KeyActionSet<T>];
 }
 
 
@@ -96,7 +103,6 @@ pub struct SMKeyboard<KeyId, T, Mapper> {
     default_layer: keys::LayerId,
     layer_mapper: Mapper,
     layer_stack: Vec<keys::LayerId>,
-    active_key_actions: HashMap<KeyId, keys::KeyActionSet<T>>,
     state_machines: HashMap<KeyId, Box<dyn KeyStateMachine<KeyId, T>>>,
     state_machine_order: Vec<KeyId>,
     settings: SMKeyboardSettings,
@@ -114,7 +120,6 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
             default_layer,
             layer_mapper: layer_mapper,
             state_machines: HashMap::new(),
-            active_key_actions: HashMap::new(),
             layer_stack: Vec::new(),
             state_machine_order: Vec::new(),
         }
@@ -239,7 +244,6 @@ where KeyId: Hash + Copy + Eq + Debug + 'static,
             let machine = self.state_machines.get_mut(key_id).unwrap();
             if let Some(key_actions) = machine.transition(&event) {
                 eprintln!("transition actions: key_id={:?} actionset={:?}", key_id, key_actions);
-                self.active_key_actions.insert(*key_id, key_actions.clone());
                 pending_action_q.push((*key_id, key_actions));
             }
         }
@@ -247,9 +251,9 @@ where KeyId: Hash + Copy + Eq + Debug + 'static,
         // add cleanup action for finished machines
         for (key_id, machine) in self.state_machines.iter_mut() {
             if machine.is_finished() {
-                let actionset = self.active_key_actions.remove(key_id).unwrap();
-                let actionset = actionset.invert();
-                pending_action_q.push((*key_id, actionset));
+                for actionset in machine.get_cleanup_actions() {
+                    pending_action_q.push((*key_id, actionset.clone()));
+                }
             }
         }
 
@@ -262,7 +266,6 @@ where KeyId: Hash + Copy + Eq + Debug + 'static,
             }
         }
 
-        eprintln!("active actions : {:?}", self.active_key_actions);
         eprintln!("state machine count: {:?}", self.state_machines.len());
         self.drop_finished_machines();
 

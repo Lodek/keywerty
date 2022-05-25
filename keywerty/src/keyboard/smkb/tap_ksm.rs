@@ -11,14 +11,18 @@ pub struct TapKSM<KeyId, T> {
     finished: bool,
     watched_key: KeyId,
     conf: TapKeyConf<T>,
+    cleanup_actions: [KeyActionSet<T>; 1]
 }
 
-impl<KeyId, T> TapKSM<KeyId, T> {
+impl<KeyId, T> TapKSM<KeyId, T> 
+where T: Copy
+{
     pub fn new(watched_key: KeyId, key_conf: TapKeyConf<T>) -> Self {
         Self {
             conf: key_conf,
             finished: false,
             watched_key,
+            cleanup_actions: [key_conf.tap.invert()]
         }
     }
 }
@@ -53,5 +57,9 @@ where KeyId: PartialEq + Debug,
 
     fn is_finished(&self) -> bool {
         self.finished
+    }
+
+    fn get_cleanup_actions(&self) -> &[KeyActionSet<T>] {
+        &self.cleanup_actions
     }
 }

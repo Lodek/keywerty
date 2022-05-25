@@ -23,6 +23,7 @@ pub struct HoldKSM<KeyId, T> {
     key_conf: HoldKeyConf<T>,
     timer_start: Instant,
     release_delay: Duration,
+    cleanup_actions: [KeyActionSet<T>; 1],
 }
 
 impl<KeyId, T> HoldKSM<KeyId, T> {
@@ -33,13 +34,14 @@ impl<KeyId, T> HoldKSM<KeyId, T> {
             timer_start: Instant::now(),
             state: State::Created,
             key_conf: conf,
+            cleanup_actions: [KeyActionSet::default()]
         }
     }
 }
 
 impl<KeyId, T> KeyStateMachine<KeyId, T> for HoldKSM<KeyId, T> 
 where KeyId: PartialEq,
-      T: Clone
+      T: Copy
 {
 
     fn get_watched_key(&self) -> &KeyId {
@@ -74,11 +76,13 @@ where KeyId: PartialEq,
                     matches!(event, Event::KeyPress(key_id) if key_id != watched_key)
                 {
                     self.state = State::Hold;
+                    self.cleanup_actions[0] = self.key_conf.hold.invert();
                     Some(self.key_conf.hold.clone())
                 }
                 // key released before timer means tap
                 else if matches!(event, Event::KeyRelease(key_id) if key_id == watched_key) {
                     self.state = State::Released;
+                    self.cleanup_actions[0] = self.key_conf.tap.invert();
                     Some(self.key_conf.tap.clone())
                 }
                 else {
@@ -99,6 +103,10 @@ where KeyId: PartialEq,
             },
             State::Finished => None,
         }
+    }
+
+    fn get_cleanup_actions(&self) -> &[KeyActionSet<T>] {
+        &self.cleanup_actions
     }
 }
 
