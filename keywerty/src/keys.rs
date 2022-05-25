@@ -1,4 +1,4 @@
-/// Module defines types for keys with stateful activation modes
+//! Module defines types for keys with stateful activation modes
 
 pub type LayerId = u8;
 
