@@ -30,22 +30,32 @@ use hold_ksm::HoldKSM;
 //use double_tap_hold_ksm::DoubleTapHoldKSM;
 
 
-/// KeyStateMachine (KSM) abstracts a key's internal activation mechanism.
+/// SMKeyboard is a state machiene orchestrator, more specifically it coordinates 
+/// KeyStateMachine types.
 ///
-/// Conceptually a KSM will respond to events and may generate
-/// `KeyAction`s in response to them.
-/// Each KSM handles the activation of *one* key, the "watched key".
+/// KeyStateMachine (KSM) models a - potentially stateful - key and its transitions.
 ///
-/// Upon implementation specific conditions, a KSM will reach its
-/// final state which means should not return any new events.
+/// KSM is state machine like, but does not comfort to the standard state machine
+/// notions in that it produces values. 
+/// KSM receives `Event` objects and return `Option<KeyActionSet>` when transitioned.
+/// The idea is that KSM encapsulates the states and yields actionable values
+/// from which `SMKeyboard` should act.
+/// Actually implementing KSM as a state machine is left up to each concrete type,
+/// however the state machine proved to be a good model for keys.
+/// 
+/// Some details about the interface:
+/// - KSM handles the activation of *one* key, the "watched key".
+/// - KSM receives inputs and optionally yields an action.
+/// - KSMs will reach a "finished" state, after which it will be discarted.
 ///
-/// Semantically, a KSM *may* respond to `Event`s with `KeyAction`,
-/// it *should* have a finished state and once this state is finished
-/// the machine *should* be considered disposable.
+/// Once a KSM is "finished", SMKeyboard will drop it.
+/// The semantics of "finished" depend on the behavior being modeled, but can be understood as
+/// "A key that has reached its final state and will no longer produce a result".
+/// Prior to being dropped however, KSMs are queried for cleanup actions that the main
+/// keyboard should perform.
+/// The cleanup logic in most cases (but not always) will undo the actions 
+/// performed by the state machine.
 ///
-/// State machines *must* implement cleanup logic which is called once a 
-/// machine is finished. The cleanup logic in most cases (but not always)
-/// will undo the actions performed by the state machine.
 /// It's up to each machine to properly undo the actions it perform, however
 /// it must be noted that since machines mutate the state of the main keyboard
 /// attention is required to not generate unexpected behaviors.
@@ -53,19 +63,17 @@ pub trait KeyStateMachine<KeyId, T> {
 
     /// Steps the state machine from the current events
     /// Each step may return a KeyActionSet.
-    ///
-    /// An unitialized machine *should not* return any events.
     fn transition<'a>(&mut self, event: &Event<KeyId>) -> Option<KeyActionSet<T>>;
 
     /// Return the key for which the KSM is reponsible.
     fn get_watched_key(&self) -> &KeyId;
 
     /// Check whether the machine's current state is one of its accepting states.
-    /// A state machine in an accepting state is finished and can be discarded
+    /// A finished state machine will be dropped after performing the cleanup actions.
     fn is_finished(&self) -> bool;
 
     /// Fetch actions that should performed to cleanup the state machine.
-    /// Cleanup is done after a machine is finished and before it is disposed.
+    /// Cleanup is done after a machine is finished and before it is dropped.
     fn get_cleanup_actions(&self) -> &[KeyActionSet<T>];
 }
 
@@ -99,6 +107,19 @@ impl Default for SMKeyboardSettings {
 }
 
 
+/// `SMKeyboard` implements the `Keyboard` trait defined in this crate.
+/// SMKeyboard implements its logic through a special data type called `KeyStateMachine` (KSM).
+/// KSMs are responsible for modeling the states a key transition through during its lifetime.
+/// SMKeyboard can be seen as an orchestrator for KSMs. 
+///
+/// On a KeyPress Event, SMKb verified whether there exists a State Machine for that key,
+/// if there is not it attempts to fetch the maching key's KeyConf and creates a KSM for it. 
+/// The key handling logic is then delegated to the KSM.
+///
+/// SMKb notifies every active state machine of the received event.
+/// Each machine may generate an action which shall be handled by SMKb.
+///
+/// Once a KSM is finished, SMKb will perform any cleanup actions and proceed to drop it.
 pub struct SMKeyboard<KeyId, T, Mapper> {
     default_layer: keys::LayerId,
     layer_mapper: Mapper,
