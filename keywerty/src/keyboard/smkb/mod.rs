@@ -172,14 +172,6 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
             keys::KeyAction::NoOp => {
                 None
             },
-            keys::KeyAction::ToggleKey(action) => {
-                // TODO
-                todo!()
-            },
-            keys::KeyAction::ToggleLayer(action) => {
-                // TODO
-                todo!()
-            },
         }
     }
 

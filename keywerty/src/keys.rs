@@ -1,40 +1,49 @@
-//! Module defines types for keys with stateful activation modes
+//! Module with definitions for Key configurations
+pub use crate::mapper::LayerId;
 
-pub type LayerId = u8;
 
-/// Activating a key triggers an action to occur.
-/// An action can alter the internal state of the keyboard, or 
-/// it may produce an output.
-///
-/// `AddKey`: indicates that the given keyboard Key should be sent to the host
-/// `SetLayer`: sets the new active layer in the internal keyboard represtation
-/// `NoOp`: does nothing
+/// KeyAction models the different side effects a Key can have when activated.
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum KeyAction<T> {
+    /// Indicates that the Keyboard should send some data for `T`.
+    /// Should be equivalent to an `Action::SendKey`.
     SendKey(T),
+
+    /// Indicate that the Keyboard should stop sending `T`.
+    /// Translates to an `Action::Stop`.
     StopKey(T),
+
+    /// Push the layer given by `LayerId` onto the LayerStack.
     PushLayer(LayerId),
+
+    /// Remove the first occurence of `LayerId` from the layer stack.
     PopLayer(LayerId),
+
+    /// No operation action
     NoOp,
-    ToggleKey(T),
-    ToggleLayer(LayerId),
 }
 
 impl<T: Copy> KeyAction<T> {
+
+    /// Convenience method to map out the inverse of a KeyAction.
+    /// Conceptually the inverse of an action undoes or cancels
+    /// what the original action did.
     pub fn invert(&self) -> Self {
+        // TODO not sure if this still makes sense.
+        // It's convenient but may cause confusion.
         match self {
             Self::SendKey(key_id) => Self::StopKey(*key_id),
             Self::StopKey(key_id) => Self::SendKey(*key_id),
             Self::PushLayer(layer_id) => Self::PopLayer(*layer_id),
             Self::PopLayer(layer_id) => Self::PushLayer(*layer_id),
             Self::NoOp => Self::NoOp,
-            Self::ToggleKey(key_id) => Self::ToggleKey(*key_id),
-            Self::ToggleLayer(layer_id) => Self::ToggleLayer(*layer_id),
         }
     }
 }
 
 impl<T> Default for KeyAction<T> {
+
+    /// KeyAction defaults to NoOp
     fn default() -> Self {
         KeyAction::NoOp
     }
@@ -42,15 +51,24 @@ impl<T> Default for KeyAction<T> {
 
 
 /// A group of KeyActions that will be triggered once a key is activated
+/// It's often useful / interesting for a Key to perform more than
+/// one action at a time.
+/// KeyActionSet encapsulates this scenario.
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum KeyActionSet<T> {
-    // TODO Understand how enum variants are stored in memory
+    // TODO this kinda doesn't make a whole lot of sense.
+    // It does but it doesn't. Should revisit this at some point.
+
+    // TODO Understand how enum variants are stored in memory.
+    // Does it allocate memory for the biggest variant?
     Single(KeyAction<T>),
     Double(KeyAction<T>, KeyAction<T>),
     Triple(KeyAction<T>, KeyAction<T>, KeyAction<T>),
 }
 
 impl<T: Copy> KeyActionSet<T> {
+    
+    /// Collect actions in the action set and return a Vector of `KeyAction`s.
     pub fn get_actions(&self) -> Vec<KeyAction<T>> {
         let mut actions = Vec::new();
 
@@ -71,6 +89,7 @@ impl<T: Copy> KeyActionSet<T> {
         actions
     }
 
+    /// Return action set with every KeyAction inverted.
     pub fn invert(&self) -> KeyActionSet<T> {
         match self {
             KeyActionSet::Single(a1) => KeyActionSet::Single(a1.invert()),
@@ -81,12 +100,15 @@ impl<T: Copy> KeyActionSet<T> {
 }
 
 impl<T> Default for KeyActionSet<T> {
+
+    /// KeyActionSet defaults to a Single NoOp action
     fn default() -> Self {
         Self::Single(KeyAction::default())
     }
 }
 
 
+/// Specify key configuration variants.
 #[derive(Debug, Clone, Copy)]
 pub enum KeyConf<T> {
     Tap(TapKeyConf<T>),
@@ -95,11 +117,6 @@ pub enum KeyConf<T> {
     DoubleTapHold(DoubleTapHoldKeyConf<T>),
 }
 
-impl<T> Default for KeyConf<T> {
-    fn default() -> Self {
-        todo!()
-    }
-}
 
 /// TapKeyConf represents a key as most people are used to.
 /// Once it's pressed (key down) it performs an action.

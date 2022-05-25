@@ -2,8 +2,10 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use crate::keys::{LayerId, KeyConf, KeyAction, TapKeyConf, KeyActionSet};
+use crate::keys::{KeyConf, KeyAction, TapKeyConf, KeyActionSet};
 
+
+pub type LayerId = u8;
 
 /// Trait to ease mapping handling keyboard configurations
 /// when multiple layers are supported.
