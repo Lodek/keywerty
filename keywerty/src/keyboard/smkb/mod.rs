@@ -10,6 +10,7 @@
 
 mod tap_ksm;
 mod hold_ksm;
+mod eager_hold_ksm;
 //mod double_tap_ksm;
 //mod double_tap_hold_ksm;
 
@@ -26,6 +27,7 @@ use crate::keys;
 use crate::keys::{KeyConf, KeyActionSet};
 use tap_ksm::TapKSM;
 use hold_ksm::HoldKSM;
+use eager_hold_ksm::EagerHoldKSM;
 //use double_tap_ksm::DoubleTapKSM;
 //use double_tap_hold_ksm::DoubleTapHoldKSM;
 
@@ -75,6 +77,14 @@ pub trait KeyStateMachine<KeyId, T> {
     /// Fetch actions that should performed to cleanup the state machine.
     /// Cleanup is done after a machine is finished and before it is dropped.
     fn get_cleanup_actions(&self) -> &[KeyActionSet<T>];
+
+}
+
+fn is_watched_key_pressed<KSM, KeyId, T>(ksm: &KSM, event: &Event<KeyId>) -> bool 
+where KSM: KeyStateMachine<KeyId, T>,
+      KeyId: PartialEq
+{
+    matches!(event, Event::KeyPress(key_id) if key_id == ksm.get_watched_key())
 }
 
 
@@ -212,6 +222,10 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
             }
             keys::KeyConf::Hold(conf) => {
                 let mut ksm = HoldKSM::new(self.settings.hold_ksm_delay, *key_id, conf);
+                Box::new(ksm)
+            },
+            keys::KeyConf::EagerHold(conf) => {
+                let ksm = EagerHoldKSM::new(self.settings.hold_ksm_delay, *key_id, conf);
                 Box::new(ksm)
             },
             keys::KeyConf::DoubleTap(conf) => todo!(),
