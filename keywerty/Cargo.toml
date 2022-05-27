@@ -2,6 +2,8 @@
 name = "keywerty"
 version = "0.1.0"
 edition = "2021"
+description = "Logical keyboard with stateful key activation behaviors"
+license = "MIT"
 
 [dependencies]
 log = "0.4"
