@@ -20,7 +20,6 @@ fn main() {
     let settings = SMKeyboardSettings::default();
     let mut keyboard = SMKeyboard::new(default_layer, mapper, settings);
 
-
     println!("Press Tap key");
     let actions = keyboard.transition(Event::KeyPress(0));
     print_actions(&actions);
@@ -45,7 +44,6 @@ fn main() {
     let actions = keyboard.transition(Event::KeyRelease(2));
     print_actions(&actions);
 
-
     // Hold keys are a bit more intricate because they require a timing aspect.
     // Internally the hold key is handled by a state machine which sometimes
     // require a Poll event in order to transition to future states.
@@ -67,7 +65,6 @@ fn main() {
     let actions = keyboard.transition(Event::KeyRelease(1));
     print_actions(&actions);
 
-
     // Likewise, the tap behavior of a hold key requires a few polling events.
     println!("Tap the Hold key");
 
@@ -83,7 +80,6 @@ fn main() {
     let actions = keyboard.transition(Event::Poll);
     print_actions(&actions);
 }
-
 
 /// Builds mapper with custom key actions
 /// Demonstrates how to configure a keyboard using different
@@ -119,7 +115,6 @@ fn build_mapper() -> impl LayerMapper<u8, String> {
 
     map
 }
-
 
 /// Print actions in result vector in debug mode
 fn print_actions(actions: &Vec<Action<String>>) {

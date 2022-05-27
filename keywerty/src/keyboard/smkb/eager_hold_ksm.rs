@@ -2,7 +2,7 @@
 use std::time::{Duration, Instant};
 
 use super::KeyStateMachine;
-use crate::keyboard::smkb;
+use crate::keyboard::smkb::helpers;
 use crate::keyboard::Event;
 use crate::keys::HoldKeyConf;
 use crate::keys::KeyActionSet;
@@ -61,7 +61,7 @@ where
 
         match self.state {
             State::Created => {
-                if smkb::is_watched_key_pressed(self, event) {
+                if helpers::is_watched_key_pressed(self, event) {
                     // send hold action
                     self.timer_start = Instant::now();
                     self.state = State::Waiting;

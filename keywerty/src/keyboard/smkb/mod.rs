@@ -1,4 +1,5 @@
 mod eager_hold_ksm;
+mod helpers;
 mod hold_ksm;
 /// Keyboard trait implementation using state machines
 ///
@@ -22,7 +23,7 @@ use super::Action;
 use super::Event;
 use super::Keyboard;
 use crate::keys;
-use crate::keys::{KeyActionSet, KeyConf};
+use crate::keys::KeyActionSet;
 use crate::mapper::LayerMapper;
 use eager_hold_ksm::EagerHoldKSM;
 use hold_ksm::HoldKSM;
@@ -77,16 +78,6 @@ pub trait KeyStateMachine<KeyId, T> {
     /// Cleanup is done after a machine is finished and before it is dropped.
     fn get_cleanup_actions(&self) -> &[KeyActionSet<T>];
 }
-
-fn is_watched_key_pressed<KSM, KeyId, T>(ksm: &KSM, event: &Event<KeyId>) -> bool
-where
-    KSM: KeyStateMachine<KeyId, T>,
-    KeyId: PartialEq,
-{
-    matches!(event, Event::KeyPress(key_id) if key_id == ksm.get_watched_key())
-}
-
-type PendingKeyAction<KeyId, T> = (KeyId, keys::KeyActionSet<T>);
 
 #[derive(Debug, Clone, Copy)]
 pub struct SMKeyboardSettings {
@@ -172,7 +163,7 @@ where
                 self.layer_stack.push(*layer_id);
                 None
             }
-            keys::KeyAction::PopLayer(layer_id) => {
+            keys::KeyAction::PopLayer(_) => {
                 // FIXME this is incorrect as it will only pop
                 // the last layer in the stack.
                 self.layer_stack.pop();
@@ -217,19 +208,19 @@ where
     ) -> Box<dyn KeyStateMachine<KeyId, T>> {
         match key_conf {
             keys::KeyConf::Tap(conf) => {
-                let mut ksm = TapKSM::new(*key_id, conf);
+                let ksm = TapKSM::new(*key_id, conf);
                 Box::new(ksm)
             }
             keys::KeyConf::Hold(conf) => {
-                let mut ksm = HoldKSM::new(self.settings.hold_ksm_delay, *key_id, conf);
+                let ksm = HoldKSM::new(self.settings.hold_ksm_delay, *key_id, conf);
                 Box::new(ksm)
             }
             keys::KeyConf::EagerHold(conf) => {
                 let ksm = EagerHoldKSM::new(self.settings.hold_ksm_delay, *key_id, conf);
                 Box::new(ksm)
             }
-            keys::KeyConf::DoubleTap(conf) => todo!(),
-            keys::KeyConf::DoubleTapHold(conf) => todo!(),
+            keys::KeyConf::DoubleTap(_) => todo!(),
+            keys::KeyConf::DoubleTapHold(_) => todo!(),
         }
     }
 
@@ -290,7 +281,7 @@ where
         }
 
         // map pending key actions into actions
-        for (key_id, key_actions) in pending_action_q.iter() {
+        for (_, key_actions) in pending_action_q.iter() {
             for key_action in key_actions.get_actions().iter() {
                 if let Some(action) = self.handle_key_action(key_action) {
                     actions.push(action);
