@@ -1,3 +1,4 @@
-# [1.0.0] - 2021-05-27
+# [0.1.0] - 2021-05-27
 ## Added
-- Initial release
+- Initial release, interfaces are well defined and state machine keyboard implementation
+- Add examples

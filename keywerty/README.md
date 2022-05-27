@@ -58,6 +58,16 @@ This gives us the ability to change how the key behaves but also how it sends dy
 This should be somewhat familiar as most laptops have some sort of "fn" key which does that, but to a limited extent.
 
 
+## Config
+keywerty configuration is done through a `LayerMapper` trait.
+Types implementing the LayerMapper trait can be used by the keywerty keyboard type.
+
+The configuration is done through the `KeyConf` type for each key.
+`LayerMap` maps a `KeyId` and a `LayerId` to a `KeyConf`.
+
+For an example of the configuration and usage of keywerty see [example](./examples/keywerty.rs).
+
+
 ## Code Structure / diagrams
 TODO
 
