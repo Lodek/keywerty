@@ -65,5 +65,4 @@ TODO
 ## Todos
 - [ ] review code docs (docrs)
 - [ ] improve tests
-- [ ] add examples showing how to use SMKb
-- [ ] Bump to 1.0 and publish crate
+- [ ] add workflow to publish keywerty crate

@@ -20,6 +20,7 @@ fn main() {
     let settings = SMKeyboardSettings::default();
     let mut keyboard = SMKeyboard::new(default_layer, mapper, settings);
 
+
     println!("Press Tap key");
     let actions = keyboard.transition(Event::KeyPress(0));
     print_actions(&actions);
@@ -41,22 +42,48 @@ fn main() {
     print_actions(&actions);
 
     println!("Released layer");
-    let actions = keyboard.transition(Event::KeyPress(2));
+    let actions = keyboard.transition(Event::KeyRelease(2));
     print_actions(&actions);
 
-    // Hold keys take a few poll cycles to complete the transitions
-    println!("Press key conf Hold");
-    let actions = keyboard.transition(Event::KeyPress(1));
+
+    // Hold keys are a bit more intricate because they require a timing aspect.
+    // Internally the hold key is handled by a state machine which sometimes
+    // require a Poll event in order to transition to future states.
+    //
+    // In a real runtime, it's recommended to use a loop and poll the
+    // keyboard after a certain threshold to make this process transparent
+    // to the end user.
+    println!("Press hold key and wait until its active");
+
+    // the initial press doesn't do anything as it needs to wait for timeout
+    keyboard.transition(Event::KeyPress(1));
+
+    // after timeout, the keyboard will emit the hold key
+    thread::sleep(Duration::from_millis(800));
+    let actions = keyboard.transition(Event::Poll);
     print_actions(&actions);
 
-    println!("Release key triggers tap event");
+    println!("Releasing the held key works as expected");
     let actions = keyboard.transition(Event::KeyRelease(1));
     print_actions(&actions);
 
-    println!("Polling keyboard again will release key");
+
+    // Likewise, the tap behavior of a hold key requires a few polling events.
+    println!("Tap the Hold key");
+
+    // again, the initial press doesn't do anything
+    keyboard.transition(Event::KeyPress(1));
+
+    println!("Release the Hold key trigger the tap action");
+    // after releasing the key, the keyboard will emit the tap key
+    let actions = keyboard.transition(Event::KeyRelease(1));
+    print_actions(&actions);
+
+    println!("Once the keyboard is polled, the key is released");
     let actions = keyboard.transition(Event::Poll);
     print_actions(&actions);
 }
+
 
 /// Builds mapper with custom key actions
 /// Demonstrates how to configure a keyboard using different
@@ -92,6 +119,7 @@ fn build_mapper() -> impl LayerMapper<u8, String> {
 
     map
 }
+
 
 /// Print actions in result vector in debug mode
 fn print_actions(actions: &Vec<Action<String>>) {
