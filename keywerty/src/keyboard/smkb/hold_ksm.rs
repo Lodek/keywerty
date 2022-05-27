@@ -1,11 +1,10 @@
 /// Module for Key State Machine implementation for the `Hold` key configuration
-use std::time::{Instant, Duration};
+use std::time::{Duration, Instant};
 
-use crate::keys::KeyActionSet;
-use crate::keys::HoldKeyConf;
-use crate::keyboard::Event;
 use super::KeyStateMachine;
-
+use crate::keyboard::Event;
+use crate::keys::HoldKeyConf;
+use crate::keys::KeyActionSet;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum State {
@@ -34,20 +33,20 @@ impl<KeyId, T> HoldKSM<KeyId, T> {
             timer_start: Instant::now(),
             state: State::Created,
             key_conf: conf,
-            cleanup_actions: [KeyActionSet::default()]
-        }
+            cleanup_actions: [KeyActionSet::default()],
+        };
     }
 }
 
-impl<KeyId, T> KeyStateMachine<KeyId, T> for HoldKSM<KeyId, T> 
-where KeyId: PartialEq,
-      T: Clone
+impl<KeyId, T> KeyStateMachine<KeyId, T> for HoldKSM<KeyId, T>
+where
+    KeyId: PartialEq,
+    T: Clone,
 {
-
     fn get_watched_key(&self) -> &KeyId {
         &self.watched_key
     }
-    
+
     fn is_finished(&self) -> bool {
         matches!(self.state, State::Finished)
     }
@@ -68,12 +67,12 @@ where KeyId: PartialEq,
                     self.state = State::Waiting;
                 }
                 None
-            },
+            }
             State::Waiting => {
                 // pressed till timeout or other key was pressed
                 // hold
-                if (Instant::now() - self.timer_start) >= self.release_delay || 
-                    matches!(event, Event::KeyPress(key_id) if key_id != watched_key)
+                if (Instant::now() - self.timer_start) >= self.release_delay
+                    || matches!(event, Event::KeyPress(key_id) if key_id != watched_key)
                 {
                     self.state = State::Hold;
                     self.cleanup_actions[0] = self.key_conf.hold.invert();
@@ -84,23 +83,22 @@ where KeyId: PartialEq,
                     self.state = State::Released;
                     self.cleanup_actions[0] = self.key_conf.tap.invert();
                     Some(self.key_conf.tap.clone())
-                }
-                else {
+                } else {
                     None
                 }
-            },
+            }
             State::Released => {
                 // after released, go to finished
                 self.state = State::Finished;
                 None
-            },
+            }
             State::Hold => {
                 // if key was held, wait until its released
                 if matches!(event, Event::KeyRelease(key_id) if key_id == watched_key) {
                     self.state = State::Finished;
                 }
                 None
-            },
+            }
             State::Finished => None,
         }
     }
@@ -110,13 +108,12 @@ where KeyId: PartialEq,
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Duration;
-    use std::thread::sleep;
     use crate::keys::KeyAction;
+    use std::thread::sleep;
+    use std::time::Duration;
 
     const watched_key: u8 = 1;
     const tap_key_code: u8 = 10;
@@ -126,7 +123,10 @@ mod tests {
         let timeout = Duration::from_millis(2);
         let tap_action = KeyActionSet::Single(KeyAction::SendKey(tap_key_code));
         let hold_action = KeyActionSet::Single(KeyAction::SendKey(hold_key_code));
-        let conf = HoldKeyConf { tap: tap_action, hold: hold_action };
+        let conf = HoldKeyConf {
+            tap: tap_action,
+            hold: hold_action,
+        };
         let mut machine = HoldKSM::new(timeout, watched_key, conf);
         machine
     }
@@ -141,7 +141,7 @@ mod tests {
         assert!(!machine.is_finished());
 
         // When I sleep for timeout
-        // And machine is polled 
+        // And machine is polled
         for i in [0..2] {
             sleep(Duration::from_nanos(500));
             let opt = machine.transition(&Event::Poll);
@@ -152,10 +152,13 @@ mod tests {
         // when i poll after timeout
         sleep(Duration::from_millis(2));
         let opt = machine.transition(&Event::Poll);
-        assert_eq!(opt.unwrap(), KeyActionSet::Single(KeyAction::SendKey(hold_key_code)));
+        assert_eq!(
+            opt.unwrap(),
+            KeyActionSet::Single(KeyAction::SendKey(hold_key_code))
+        );
         assert!(!machine.is_finished());
 
-        // when machine is polled 
+        // when machine is polled
         let opt = machine.transition(&Event::Poll);
         assert!(opt.is_none());
         assert!(!machine.is_finished());
@@ -177,10 +180,13 @@ mod tests {
 
         // When another key is pressed
         let opt = machine.transition(&Event::KeyPress(255));
-        assert_eq!(opt.unwrap(), KeyActionSet::Single(KeyAction::SendKey(hold_key_code)));
+        assert_eq!(
+            opt.unwrap(),
+            KeyActionSet::Single(KeyAction::SendKey(hold_key_code))
+        );
         assert!(!machine.is_finished());
 
-        // when machine is polled 
+        // when machine is polled
         let opt = machine.transition(&Event::Poll);
         assert!(opt.is_none());
         assert!(!machine.is_finished());
@@ -202,13 +208,15 @@ mod tests {
 
         // When I release the watched key
         let opt = machine.transition(&Event::KeyRelease(watched_key));
-        assert_eq!(opt.unwrap(), KeyActionSet::Single(KeyAction::SendKey(tap_key_code)));
+        assert_eq!(
+            opt.unwrap(),
+            KeyActionSet::Single(KeyAction::SendKey(tap_key_code))
+        );
         assert!(!machine.is_finished());
 
-        // when machine is polled 
+        // when machine is polled
         let opt = machine.transition(&Event::Poll);
         assert!(opt.is_none());
         assert!(machine.is_finished());
     }
-
 }

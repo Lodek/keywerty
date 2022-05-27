@@ -1,12 +1,10 @@
 //! Module with definitions for Key configurations
 pub use crate::mapper::LayerId;
 
-
 /// A Key may have different different activation mechanisms.
 /// KeyConf indicates a key's behavior once it's activated (ie a KeyPress event)
 #[derive(Debug, Clone, Copy)]
 pub enum KeyConf<T> {
-
     /// A Tap represents a key as most people are used to.
     /// Once it's pressed (key down) it performs an action.
     /// Upon being released it undo / stop performing the action.
@@ -20,7 +18,7 @@ pub enum KeyConf<T> {
     Hold(HoldKeyConf<T>),
 
     /// An Eager Hold key is much like very similart to a Hold key, except
-    /// the eager version will perform the `hold` action as 
+    /// the eager version will perform the `hold` action as
     /// soon as the key is pressed.
     /// If the key is released before the hold activation timer,
     /// the performed action will be undone (through `KeyActionSet::invert`),
@@ -40,7 +38,6 @@ pub enum KeyConf<T> {
     /// ESC for `tap` and Caps Lock for `double_tap`
     DoubleTapHold(DoubleTapHoldKeyConf<T>),
 }
-
 
 /// KeyAction models the different side effects a Key can have when activated.
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -70,7 +67,6 @@ impl<T> Into<KeyActionSet<T>> for KeyAction<T> {
 }
 
 impl<T: Clone> KeyAction<T> {
-
     /// Convenience method to map out the inverse of a KeyAction.
     /// Conceptually the inverse of an action undoes or cancels
     /// what the original action did.
@@ -88,13 +84,11 @@ impl<T: Clone> KeyAction<T> {
 }
 
 impl<T> Default for KeyAction<T> {
-
     /// KeyAction defaults to NoOp
     fn default() -> Self {
         KeyAction::NoOp
     }
 }
-
 
 /// A group of KeyActions that will be triggered once a key is activated
 /// It's often useful / interesting for a Key to perform more than
@@ -113,7 +107,6 @@ pub enum KeyActionSet<T> {
 }
 
 impl<T: Clone> KeyActionSet<T> {
-    
     /// Collect actions in the action set and return a Vector of `KeyAction`s.
     pub fn get_actions(&self) -> Vec<KeyAction<T>> {
         let mut actions = Vec::new();
@@ -121,16 +114,16 @@ impl<T: Clone> KeyActionSet<T> {
         match self {
             KeyActionSet::Single(a1) => {
                 actions.push(a1.clone());
-            },
+            }
             KeyActionSet::Double(a1, a2) => {
                 actions.push(a1.clone());
                 actions.push(a2.clone());
-            },
+            }
             KeyActionSet::Triple(a1, a2, a3) => {
                 actions.push(a1.clone());
                 actions.push(a2.clone());
                 actions.push(a3.clone());
-            },
+            }
         }
         actions
     }
@@ -139,22 +132,20 @@ impl<T: Clone> KeyActionSet<T> {
     pub fn invert(&self) -> KeyActionSet<T> {
         match self {
             KeyActionSet::Single(a1) => KeyActionSet::Single(a1.invert()),
-            KeyActionSet::Double(a1, a2) =>  KeyActionSet::Double(a1.invert(), a2.invert()),
-            KeyActionSet::Triple(a1, a2, a3) => KeyActionSet::Triple(a1.invert(), a2.invert(), a3.invert()),
+            KeyActionSet::Double(a1, a2) => KeyActionSet::Double(a1.invert(), a2.invert()),
+            KeyActionSet::Triple(a1, a2, a3) => {
+                KeyActionSet::Triple(a1.invert(), a2.invert(), a3.invert())
+            }
         }
     }
 }
 
 impl<T> Default for KeyActionSet<T> {
-
     /// KeyActionSet defaults to a Single NoOp action
     fn default() -> Self {
         Self::Single(KeyAction::default())
     }
 }
-
-
-
 
 /// Configuration for a Tap keyconf, tap keys have a single action.
 #[derive(Clone, Copy, Debug)]
@@ -165,11 +156,10 @@ pub struct TapKeyConf<T> {
 impl<T> Default for TapKeyConf<T> {
     fn default() -> Self {
         Self {
-            tap: KeyActionSet::default()
+            tap: KeyActionSet::default(),
         }
     }
 }
-
 
 /// Actions for a hold or eager hold key conf.
 /// These configurations perform two actions, one for tap and another for hold.
@@ -183,11 +173,10 @@ impl<T> Default for HoldKeyConf<T> {
     fn default() -> Self {
         Self {
             tap: KeyActionSet::default(),
-            hold: KeyActionSet::default()
+            hold: KeyActionSet::default(),
         }
     }
 }
-
 
 /// Actions for a Double tap key configuration.
 /// One action for a key press another for a tap, release and retap cycle.
@@ -201,11 +190,10 @@ impl<T> Default for DoubleTapKeyConf<T> {
     fn default() -> Self {
         Self {
             tap: KeyActionSet::default(),
-            double_tap: KeyActionSet::default()
+            double_tap: KeyActionSet::default(),
         }
     }
 }
-
 
 /// Actions for a double-tap-hold configuration.
 /// one action for a tap, one for a hold and another for a double tap activation.
@@ -226,7 +214,6 @@ impl<T> Default for DoubleTapHoldKeyConf<T> {
     }
 }
 
-
 #[derive(Clone, Copy, Debug)]
 pub struct DeadKeyConf<T> {
     pub activation: KeyActionSet<T>,
@@ -237,7 +224,7 @@ impl<T> Default for DeadKeyConf<T> {
     fn default() -> Self {
         Self {
             activation: KeyActionSet::default(),
-            retap: KeyActionSet::default()
+            retap: KeyActionSet::default(),
         }
     }
 }

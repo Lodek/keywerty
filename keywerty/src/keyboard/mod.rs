@@ -1,13 +1,11 @@
 /// Module defines a Logical keyboard and its dependent types.
 ///
-/// The logical keyboard interface was drawn out considering 
+/// The logical keyboard interface was drawn out considering
 /// types which match an USB HID keyboard, that is, key scan codes are 1 byte.
-
 mod smkb;
 
-pub use smkb::SMKeyboardSettings;
 pub use smkb::SMKeyboard;
-
+pub use smkb::SMKeyboardSettings;
 
 /// Set of events that a keyboard respond to. (inputs)
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -35,14 +33,12 @@ impl<Id> Event<Id> {
     }
 }
 
-
 /// Set of actions a keyboard perform as consequence of inputs. (outputs)
 #[derive(Debug, Clone, PartialEq)]
 pub enum Action<T> {
     SendCode(T),
-    Stop(T)
+    Stop(T),
 }
-
 
 /// Abstraction for a physical keyboard.
 /// Conceptually a keyboard contains keys, each identified with an id.

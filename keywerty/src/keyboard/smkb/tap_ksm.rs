@@ -2,20 +2,20 @@ use std::fmt::Debug;
 
 use super::KeyStateMachine;
 use crate::keyboard::Event;
-use crate::keys::TapKeyConf;
 use crate::keys::KeyActionSet;
-
+use crate::keys::TapKeyConf;
 
 #[derive(Debug)]
 pub struct TapKSM<KeyId, T> {
     finished: bool,
     watched_key: KeyId,
     conf: TapKeyConf<T>,
-    cleanup_actions: [KeyActionSet<T>; 1]
+    cleanup_actions: [KeyActionSet<T>; 1],
 }
 
-impl<KeyId, T> TapKSM<KeyId, T> 
-where T: Clone
+impl<KeyId, T> TapKSM<KeyId, T>
+where
+    T: Clone,
 {
     pub fn new(watched_key: KeyId, key_conf: TapKeyConf<T>) -> Self {
         Self {
@@ -27,11 +27,11 @@ where T: Clone
     }
 }
 
-impl<KeyId, T> KeyStateMachine<KeyId, T> for TapKSM<KeyId, T> 
-where KeyId: PartialEq + Debug,
-      T: Clone
+impl<KeyId, T> KeyStateMachine<KeyId, T> for TapKSM<KeyId, T>
+where
+    KeyId: PartialEq + Debug,
+    T: Clone,
 {
-
     fn transition<'a>(&mut self, event: &Event<KeyId>) -> Option<KeyActionSet<T>> {
         if self.is_finished() {
             return None;
@@ -40,13 +40,11 @@ where KeyId: PartialEq + Debug,
         let watched_key = self.get_watched_key();
 
         match event {
-            Event::KeyPress(key_id) if key_id == watched_key => {
-                Some(self.conf.tap.clone())
-            },
+            Event::KeyPress(key_id) if key_id == watched_key => Some(self.conf.tap.clone()),
             Event::KeyRelease(key_id) if key_id == watched_key => {
                 self.finished = true;
                 None
-            },
+            }
             _ => None,
         }
     }
