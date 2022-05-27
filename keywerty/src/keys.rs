@@ -63,7 +63,13 @@ pub enum KeyAction<T> {
     NoOp,
 }
 
-impl<T: Copy> KeyAction<T> {
+impl<T> Into<KeyActionSet<T>> for KeyAction<T> {
+    fn into(self) -> KeyActionSet<T> {
+        KeyActionSet::Single(self)
+    }
+}
+
+impl<T: Clone> KeyAction<T> {
 
     /// Convenience method to map out the inverse of a KeyAction.
     /// Conceptually the inverse of an action undoes or cancels
@@ -72,8 +78,8 @@ impl<T: Copy> KeyAction<T> {
         // TODO not sure if this still makes sense.
         // It's convenient but may cause confusion.
         match self {
-            Self::SendKey(key_id) => Self::StopKey(*key_id),
-            Self::StopKey(key_id) => Self::SendKey(*key_id),
+            Self::SendKey(data) => Self::StopKey(data.clone()),
+            Self::StopKey(data) => Self::SendKey(data.clone()),
             Self::PushLayer(layer_id) => Self::PopLayer(*layer_id),
             Self::PopLayer(layer_id) => Self::PushLayer(*layer_id),
             Self::NoOp => Self::NoOp,
@@ -106,7 +112,7 @@ pub enum KeyActionSet<T> {
     Triple(KeyAction<T>, KeyAction<T>, KeyAction<T>),
 }
 
-impl<T: Copy> KeyActionSet<T> {
+impl<T: Clone> KeyActionSet<T> {
     
     /// Collect actions in the action set and return a Vector of `KeyAction`s.
     pub fn get_actions(&self) -> Vec<KeyAction<T>> {
@@ -114,16 +120,16 @@ impl<T: Copy> KeyActionSet<T> {
 
         match self {
             KeyActionSet::Single(a1) => {
-                actions.push(*a1);
+                actions.push(a1.clone());
             },
             KeyActionSet::Double(a1, a2) => {
-                actions.push(*a1);
-                actions.push(*a2);
+                actions.push(a1.clone());
+                actions.push(a2.clone());
             },
             KeyActionSet::Triple(a1, a2, a3) => {
-                actions.push(*a1);
-                actions.push(*a2);
-                actions.push(*a3);
+                actions.push(a1.clone());
+                actions.push(a2.clone());
+                actions.push(a3.clone());
             },
         }
         actions

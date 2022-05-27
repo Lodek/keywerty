@@ -64,8 +64,6 @@ TODO
 
 ## Todos
 - [ ] review code docs (docrs)
-- [ ] refactor state machines
 - [ ] improve tests
 - [ ] add examples showing how to use SMKb
 - [ ] Bump to 1.0 and publish crate
-- [ ] write actions to publish keywerty

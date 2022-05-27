@@ -42,7 +42,7 @@ impl<KeyId, T> EagerHoldKSM<KeyId, T> {
 
 impl<KeyId, T> KeyStateMachine<KeyId, T> for EagerHoldKSM<KeyId, T> 
 where KeyId: PartialEq,
-      T: Copy
+      T: Clone
 {
 
     fn get_watched_key(&self) -> &KeyId {
@@ -66,7 +66,7 @@ where KeyId: PartialEq,
                     // send hold action
                     self.timer_start = Instant::now();
                     self.state = State::Waiting;
-                    let action = self.key_conf.hold;
+                    let action = &self.key_conf.hold;
                     self.cleanup_actions[0] = action.invert();
                     Some(action.clone())
                 }

@@ -31,6 +31,7 @@ use eager_hold_ksm::EagerHoldKSM;
 //use double_tap_ksm::DoubleTapKSM;
 //use double_tap_hold_ksm::DoubleTapHoldKSM;
 
+use log;
 
 /// SMKeyboard is a state machiene orchestrator, more specifically it coordinates 
 /// KeyStateMachine types.
@@ -142,7 +143,7 @@ pub struct SMKeyboard<KeyId, T, Mapper> {
 
 impl<KeyId, T, Mapper> SMKeyboard<KeyId, T, Mapper> 
 where KeyId: Copy + Eq + Hash + Debug + 'static,
-      T: Copy + 'static,
+      T: Clone + 'static,
       Mapper: LayerMapper<KeyId, T>
 {
     pub fn new(default_layer: keys::LayerId, layer_mapper: Mapper, settings: SMKeyboardSettings) -> Self {
@@ -163,11 +164,11 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
     /// receive key id and action, mutate keyboard and possibly generate action
     fn handle_key_action(&mut self, key_action: &keys::KeyAction<T>) -> Option<Action<T>> {
         match key_action {
-            keys::KeyAction::SendKey(action) => {
-                Some(Action::SendCode(*action))
+            keys::KeyAction::SendKey(data) => {
+                Some(Action::SendCode(data.clone()))
             },
-            keys::KeyAction::StopKey(action) => {
-                Some(Action::Stop(*action))
+            keys::KeyAction::StopKey(data) => {
+                Some(Action::Stop(data.clone()))
             },
             keys::KeyAction::PushLayer(layer_id) => {
                 self.layer_stack.push(*layer_id);
@@ -199,8 +200,7 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
         // does not need handling, as the machine will be subsequently
         // executed in the transition phase.
         if self.state_machines.contains_key(key_id) {
-            // debug log
-            eprintln!("active state machine for key {:?}", key_id);
+            log::debug!("active state machine for key {:?}", key_id);
         }
         else if let Some(conf) = self.layer_mapper.get_conf(&self.get_active_layer(), key_id) {
             let machine = self.build_machine(key_id, conf);
@@ -208,8 +208,7 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
             self.state_machine_order.push(*key_id);
         }
         else {
-            // TODO use error log
-            eprintln!("Ignored missing key configuration for: layer_id={:?} key_id={:?}", self.get_active_layer(), key_id);
+            log::error!("Ignored missing key configuration for: layer_id={:?} key_id={:?}", self.get_active_layer(), key_id);
         }
     }
 
@@ -244,7 +243,7 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
         self.state_machine_order.retain(is_not_finished);
 
         for key_id in finished_machines.into_iter() {
-            eprintln!("dropped state machine for key: {:?}", key_id);
+            log::debug!("dropped state machine for key: {:?}", key_id);
             self.state_machines.remove(&key_id);
         }
     }
@@ -253,12 +252,12 @@ where KeyId: Copy + Eq + Hash + Debug + 'static,
 
 impl<KeyId, T, Mapper> Keyboard<KeyId, T> for SMKeyboard<KeyId, T, Mapper>
 where KeyId: Hash + Copy + Eq + Debug + 'static,
-      T: Copy + 'static + Debug,
+      T: Clone + 'static + Debug,
       Mapper: LayerMapper<KeyId, T>
 {
     fn transition(&mut self, event: Event<KeyId>) -> Vec<Action<T>> {
 
-        eprintln!("handling event: {:?}", event);
+        log::debug!("handling event: {:?}", event);
         let mut actions = Vec::new();
         let mut pending_action_q = Vec::with_capacity(10);
 
@@ -270,7 +269,7 @@ where KeyId: Hash + Copy + Eq + Debug + 'static,
         for key_id in self.state_machine_order.iter() {
             let machine = self.state_machines.get_mut(key_id).unwrap();
             if let Some(key_actions) = machine.transition(&event) {
-                eprintln!("transition actions: key_id={:?} actionset={:?}", key_id, key_actions);
+                log::debug!("transition actions: key_id={:?} actionset={:?}", key_id, key_actions);
                 pending_action_q.push((*key_id, key_actions));
             }
         }
@@ -293,7 +292,7 @@ where KeyId: Hash + Copy + Eq + Debug + 'static,
             }
         }
 
-        eprintln!("state machine count: {:?}", self.state_machines.len());
+        log::debug!("state machine count: {:?}", self.state_machines.len());
         self.drop_finished_machines();
 
         actions

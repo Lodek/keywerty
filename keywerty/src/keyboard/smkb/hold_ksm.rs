@@ -41,7 +41,7 @@ impl<KeyId, T> HoldKSM<KeyId, T> {
 
 impl<KeyId, T> KeyStateMachine<KeyId, T> for HoldKSM<KeyId, T> 
 where KeyId: PartialEq,
-      T: Copy
+      T: Clone
 {
 
     fn get_watched_key(&self) -> &KeyId {

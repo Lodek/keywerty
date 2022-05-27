@@ -15,14 +15,14 @@ pub struct TapKSM<KeyId, T> {
 }
 
 impl<KeyId, T> TapKSM<KeyId, T> 
-where T: Copy
+where T: Clone
 {
     pub fn new(watched_key: KeyId, key_conf: TapKeyConf<T>) -> Self {
         Self {
+            cleanup_actions: [(&key_conf).tap.invert()],
             conf: key_conf,
             finished: false,
             watched_key,
-            cleanup_actions: [key_conf.tap.invert()]
         }
     }
 }
