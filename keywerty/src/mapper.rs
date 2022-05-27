@@ -1,19 +1,23 @@
-/// Module introduces types used for layers and a mapper trait
+//! Module introduces types used to abstract keyboard configuration and mapping handling
 use std::collections::HashMap;
 use std::hash::Hash;
 
 use crate::keys::{KeyConf, KeyAction, TapKeyConf, KeyActionSet};
 
 
+/// Indetifier for a Layer
 pub type LayerId = u8;
 
-/// Trait to ease mapping handling keyboard configurations
-/// when multiple layers are supported.
+
+/// Trait to abstract keyboard keyconf mapping.
 pub trait LayerMapper<KeyId, T> {
+
+    /// Return Keyconf for a layer, key pair.
     fn get_conf(&self, layer: &LayerId, key: &KeyId) -> Option<KeyConf<T>>;
 }
 
 
+/// HashMap implementation for LayerMapper trait
 impl<KeyId, T> LayerMapper<KeyId, T> for HashMap<(LayerId, KeyId), KeyConf<T>>
 where KeyId: Eq + Hash + Copy,
       T: Clone
@@ -22,6 +26,7 @@ where KeyId: Eq + Hash + Copy,
         self.get(&(*layer, *key)).map(|v| v.clone())
     }
 }
+
 
 /// Simple Mapper implementation to aid testing.
 /// Mapper returns `key_id * (layer + 1)`.
@@ -35,6 +40,9 @@ impl LayerMapper<u8, u8> for SimpleMapper {
     }
 }
 
+
+/// LayerMapper which return KeyConf from a HashMap or echoes the input key id
+/// as a Tap Key conf.
 pub struct MapOrEchoMapper<KeyId>(pub HashMap<(LayerId, KeyId), KeyConf<KeyId>>);
 
 impl<KeyId> LayerMapper<KeyId, KeyId> for MapOrEchoMapper<KeyId> 
