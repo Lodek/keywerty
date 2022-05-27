@@ -4,11 +4,9 @@
 /// types which match an USB HID keyboard, that is, key scan codes are 1 byte.
 
 mod smkb;
-mod echoer;
 
 pub use smkb::SMKeyboardSettings;
 pub use smkb::SMKeyboard;
-pub use echoer::EchoerKb;
 
 
 /// Set of events that a keyboard respond to. (inputs)

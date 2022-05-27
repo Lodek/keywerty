@@ -1,6 +1,8 @@
 //! SMKeyboard usage example showing illustrating how to create custom 
 //! key configurations for composed behaviors.
 use std::collections::HashMap;
+use std::time::Duration;
+use std::thread;
 
 use keywerty::keys;
 use keywerty::mapper::LayerMapper;
@@ -20,31 +22,44 @@ fn main() {
     let settings = SMKeyboardSettings::default();
     let mut keyboard = SMKeyboard::new(default_layer, mapper, settings);
 
-    println!("KeyPress for key 0");
+    println!("Press Tap key");
     let actions = keyboard.transition(Event::KeyPress(0));
     print_actions(&actions);
 
-    println!("KeyRelease for key 0");
+    println!("Released");
     let actions = keyboard.transition(Event::KeyRelease(0));
     print_actions(&actions);
 
-    println!("Pressing key 2");
+    println!("Activate layer");
     let actions = keyboard.transition(Event::KeyPress(2));
     print_actions(&actions);
 
-    println!("Pressing key 0");
+    println!("Press Tap Key in layer");
     let actions = keyboard.transition(Event::KeyPress(0));
     print_actions(&actions);
 
-    println!("Release key 0");
+    println!("Released");
     let actions = keyboard.transition(Event::KeyRelease(0));
     print_actions(&actions);
 
-    println!("Release key 2");
+    println!("Released layer");
     let actions = keyboard.transition(Event::KeyPress(2));
     print_actions(&actions);
 
+    // Hold keys take a few poll cycles to complete the transitions
+    println!("Press key conf Hold");
+    let actions = keyboard.transition(Event::KeyPress(1));
+    print_actions(&actions);
+
+    println!("Release key triggers tap event");
+    let actions = keyboard.transition(Event::KeyRelease(1));
+    print_actions(&actions);
+
+    println!("Polling keyboard again will release key");
+    let actions = keyboard.transition(Event::Poll);
+    print_actions(&actions);
 }
+
 
 /// Builds mapper with custom key actions
 /// Demonstrates how to configure a keyboard using different
@@ -77,6 +92,7 @@ fn build_mapper() -> impl LayerMapper<u8, String>  {
 
     map
 }
+
 
 /// Print actions in result vector in debug mode
 fn print_actions(actions: &Vec<Action<String>>) {
