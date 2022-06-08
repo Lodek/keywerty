@@ -1,0 +1,10 @@
+[package]
+name = "vkwrty_map"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+evdev-rs = "0.5.0"
+keywerty = { path = "../keywerty", version = "0.1.0" }
