@@ -9,16 +9,30 @@ use std::fmt;
 use std::io::Error as IOError;
 use std::time::SystemTimeError;
 use std::error;
+use std::ffi::CString;
+use std::os::unix::io::FromRawFd;
+use std::fs;
 
 use keywerty::keyboard::Event;
 use keywerty::keyboard::Action;
 use keywerty::keyboard::Keyboard;
 use evdev_rs::enums::{EV_KEY};
+use libc;
 
 use monitor::EventIter;
 use epoll::Epoll;
 use virtual_dev::UInputKeyboard;
 
+
+struct Vkwrt {
+    device_name: String,
+    monitored_devices: Vec<MonitoredDevice>
+}
+
+struct MonitoredDevice {
+    path: AsRef<Path>,
+    intercept: bool,
+}
 
 #[derive(Debug)]
 pub enum Error {
@@ -57,6 +71,10 @@ impl From<SystemTimeError> for Error {
     fn from(sys_time_err: SystemTimeError) -> Error {
         Error::Time(sys_time_err)
     }
+}
+
+pub struct VkwrtyConf {
+    monitor_devices: Vec<(String, bool)>,
 }
 
 
@@ -105,5 +123,16 @@ impl Runtime {
             let actions = self.keyboard.transition(event);
             self.virtual_dev.emit_events(&actions).unwrap();
         }
+    }
+}
+
+
+/// Open linux file as non-blocking and read only
+pub fn open_dev(path: &str) -> fs::File {
+    unsafe {
+        let flags = libc::O_NONBLOCK | libc::O_RDONLY;
+        let path = CString::new(path).unwrap();
+        let fd = libc::open(path.as_ptr(), flags);
+        fs::File::from_raw_fd(fd)
     }
 }

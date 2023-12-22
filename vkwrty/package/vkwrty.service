@@ -1,0 +1,9 @@
+[Unit]
+Description=vkwrty daemon unit
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/vkwrty /dev/input/event3
+
+[Install]
+WantedBy=multi-user.target
