@@ -5,6 +5,9 @@
 //! will be the same as the emitted one.
 
 use std::time::Duration;
+use std::ffi::CString;
+use std::os::unix::io::FromRawFd;
+use std::fs;
 
 use keywerty::keyboard::Action;
 use keywerty::keyboard::Event;
@@ -16,7 +19,6 @@ use vkwrty::Error;
 use vkwrty::Runtime;
 use vkwrty::virtual_dev::UInputKeyboard;
 use vkwrty::monitor::EventIter;
-use vkwrty::open_dev;
 
 
 /// Implementation of Keyboard trait that echoes the input event data as an action.
@@ -53,4 +55,13 @@ fn main() {
 
     let mut runtime = Runtime::new(event_iter, virtual_dev, keyboard, Duration::from_secs(300)).unwrap();
     runtime.run()
+}
+
+fn open_dev(path: &str) -> fs::File {
+    unsafe {
+        let flags = libc::O_NONBLOCK | libc::O_RDONLY;
+        let path = CString::new(path).unwrap();
+        let fd = libc::open(path.as_ptr(), flags);
+        fs::File::from_raw_fd(fd)
+    }
 }

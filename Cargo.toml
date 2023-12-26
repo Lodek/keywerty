@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "keywerty",
+    "vkwrty",
+    "vkwrty_map",
+]
+
